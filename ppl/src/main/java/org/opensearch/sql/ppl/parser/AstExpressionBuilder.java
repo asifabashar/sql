@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -411,7 +412,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
-    return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+    ParseTree rootNode = ctx.getChild(0);
+    String functionName = rootNode.getText();
+    final String mappedName =
+        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+
+    if (mappedName.equals("cast")) {
+      return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+    } else {
+      return buildFunction(mappedName, ctx.functionArgs().functionArg());
+    }
   }
 
   @Override

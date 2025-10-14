@@ -48,15 +48,15 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testToStringBoolean() {
-    String ppl = "source=EMP | eval boolean_value = tostring(1==1) | fields boolean_value | head 1";
+    String ppl = "source=EMP | eval boolean_value = tostring(1==1) | fields boolean_value |head 1";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
             + "  LogicalProject(boolean_value=[TOSTRING(true)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedPhysical = "boolean_value=True\n";
+    String expectedResult = "boolean_value=True\n";
     verifyLogical(root, expectedLogical);
-    verifyResult(root, expectedPhysical);
+    verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `TOSTRING`(TRUE) `boolean_value`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
@@ -72,7 +72,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], salary_binary=[TOSTRING($5, 'binary':VARCHAR)], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedPhysical =
+    String expectedResult =
         "ENAME=SMITH; salary_binary=1100100000; SAL=800.00\n"
             + "ENAME=ALLEN; salary_binary=11001000000; SAL=1600.00\n"
             + "ENAME=WARD; salary_binary=10011100010; SAL=1250.00\n"
@@ -88,7 +88,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + "ENAME=FORD; salary_binary=101110111000; SAL=3000.00\n"
             + "ENAME=MILLER; salary_binary=10100010100; SAL=1300.00\n";
     verifyLogical(root, expectedLogical);
-    verifyResult(root, expectedPhysical);
+    verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `ENAME`, `TOSTRING`(`SAL`, 'binary') `salary_binary`, `SAL`\nFROM `scott`.`EMP`";
@@ -103,7 +103,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], salary_hex=[TOSTRING($5, 'hex':VARCHAR)], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedPhysical =
+    String expectedResult =
         "ENAME=SMITH; salary_hex=320; SAL=800.00\n"
             + "ENAME=ALLEN; salary_hex=640; SAL=1600.00\n"
             + "ENAME=WARD; salary_hex=4e2; SAL=1250.00\n"
@@ -119,7 +119,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + "ENAME=FORD; salary_hex=bb8; SAL=3000.00\n"
             + "ENAME=MILLER; salary_hex=514; SAL=1300.00\n";
     verifyLogical(root, expectedLogical);
-    verifyResult(root, expectedPhysical);
+    verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `ENAME`, `TOSTRING`(`SAL`, 'hex') `salary_hex`, `SAL`\nFROM `scott`.`EMP`";
@@ -136,7 +136,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(ENAME=[$1], salary_commas=[TOSTRING($5, 'commas':VARCHAR)], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedPhysical =
+    String expectedResult =
         "ENAME=SMITH; salary_commas=800; SAL=800.00\n"
             + "ENAME=ALLEN; salary_commas=1,600; SAL=1600.00\n"
             + "ENAME=WARD; salary_commas=1,250; SAL=1250.00\n"
@@ -152,7 +152,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + "ENAME=FORD; salary_commas=3,000; SAL=3000.00\n"
             + "ENAME=MILLER; salary_commas=1,300; SAL=1300.00\n";
     verifyLogical(root, expectedLogical);
-    verifyResult(root, expectedPhysical);
+    verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `ENAME`, `TOSTRING`(`SAL`, 'commas') `salary_commas`, `SAL`\nFROM `scott`.`EMP`";
@@ -171,9 +171,9 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
         "LogicalSort(fetch=[1])\n"
             + "  LogicalProject(ENAME=[$1], duration_commas=[TOSTRING(6500, 'duration':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedPhysical = "ENAME=SMITH; duration_commas=01:48:20\n";
+    String expectedResult = "ENAME=SMITH; duration_commas=01:48:20\n";
     verifyLogical(root, expectedLogical);
-    verifyResult(root, expectedPhysical);
+    verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\n"
