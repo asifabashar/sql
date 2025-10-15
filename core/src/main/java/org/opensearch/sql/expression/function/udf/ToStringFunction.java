@@ -52,7 +52,7 @@ public class ToStringFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.BOOLEAN_OR_NUMERIC_STRING;
+    return PPLOperandTypes.BOOLEAN_OR_NUMERIC_STRING_OR_STRING_STRING;
   }
 
   public static class ToStringImplementor implements NotNullImplementor {

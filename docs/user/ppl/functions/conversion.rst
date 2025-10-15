@@ -85,14 +85,15 @@ TOSTRING
 Description
 >>>>>>>>>>>
 There are two available usage based on paraemter types and number of parameters.
-Usage with format type: tostring(number, format string) converts the number to provided format type string
+Usage with format type: tostring(number|string, string) converts the number in first argument  to provided format type string in second argument.
          Return type: string
 Usage for boolean parameter without format type: tostring(boolean) converts the string to 'True' or 'False'.
          Return type: string
 
 You can use this function with the eval commands and as part of eval expressions.
-The first  argument can be a number or boolean.
-If first  argument is a a number , second argument need to be format name. If first argument is boolean, then second argument is not needed.
+The first  argument can be a number, number as string or boolean.
+If first  argument is a a number or number as string , second argument need to be format name.
+If first argument is boolean, then second argument is not needed.
 
 format types:
 a) "binary" Converts a number to a binary value.
