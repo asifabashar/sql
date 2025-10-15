@@ -296,6 +296,7 @@ public enum BuiltinFunctionName {
   CAST_TO_IP(FunctionName.of("cast_to_ip")),
   CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
+  TONUMBER(FunctionName.of("tonumber")),
 
   /** Relevance Function. */
   MATCH(FunctionName.of("match")),

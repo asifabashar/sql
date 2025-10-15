@@ -58,13 +58,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
-import org.opensearch.sql.expression.function.udf.CryptographicFunction;
-import org.opensearch.sql.expression.function.udf.ParseFunction;
-import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
-import org.opensearch.sql.expression.function.udf.RexExtractFunction;
-import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
-import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
-import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.*;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
@@ -409,6 +403,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
           .toUDF("WIDTH_BUCKET");

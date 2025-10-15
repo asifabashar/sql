@@ -101,6 +101,7 @@ SELECT:                             'SELECT';
 SHOW:                               'SHOW';
 STRING:                             'STRING';
 THEN:                               'THEN';
+TONUMBER:                           'TONUMBER';
 TRUE:                               'TRUE';
 UNION:                              'UNION';
 USING:                              'USING';
