@@ -966,10 +966,7 @@ public class DSL {
       FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TIMESTAMPDIFF, expressions);
   }
-
-  public static FunctionExpression tonumber(Expression... expressions) {
-        return compile(FunctionProperties.None, BuiltinFunctionName.TONUMBER, expressions);
-    }
+  
 
   public static FunctionExpression utc_date(
       FunctionProperties functionProperties, Expression... args) {

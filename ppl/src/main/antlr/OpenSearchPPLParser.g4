@@ -850,6 +850,7 @@ evalFunctionCall
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
+   | TONUMBER LT_PRTHS functionArgs RT_PRTHS
    ;
 
 convertedDataType

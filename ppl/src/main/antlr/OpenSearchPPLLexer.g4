@@ -408,6 +408,7 @@ LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
 REVERSE:                            'REVERSE';
 CAST:                               'CAST';
+TONUMBER:                           'TONUMBER';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';

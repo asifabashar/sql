@@ -44,7 +44,7 @@ public class ToNumberFunction extends ImplementorUDF {
 
     @Override
     public SqlReturnTypeInference getReturnTypeInference() {
-        return PPLReturnTypes.STRING_FORCE_NULLABLE;
+        return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
     }
 
     @Override
