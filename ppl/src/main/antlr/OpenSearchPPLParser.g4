@@ -847,10 +847,13 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
-// cast function
+
+// cast, tostring function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
+   | TONUMBER LT_PRTHS functionArgs RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1434,6 +1437,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
