@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -1271,5 +1272,24 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
     return false;
+  }
+
+  @Override
+  public UnresolvedPlan visitAddtotalsCommand(OpenSearchPPLParser.AddtotalsCommandContext ctx) {
+    List<Field> fieldList = new ArrayList<>();
+    java.util.Map<String, Literal> options = new LinkedHashMap<>();
+
+    // Parse addtotals options
+    for (OpenSearchPPLParser.AddtotalsOptionContext option : ctx.addtotalsOption()) {
+      if (option.FIELDLIST() != null) {
+        fieldList = getFieldList(option.fieldList());
+      } else if (option.LABEL() != null) {
+        options.put("label", (Literal) internalVisitExpression(option.stringLiteral()));
+      } else if (option.LABELFIELD() != null) {
+        options.put("labelfield", AstDSL.stringLiteral(option.qualifiedName().getText()));
+      }
+    }
+
+    return new AddTotals(fieldList, options);
   }
 }

@@ -38,6 +38,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.logical.LogicalAddTotals;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
@@ -151,6 +152,13 @@ class LogicalPlanNodeVisitorTest {
                     AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
                     ExprCoreType.DOUBLE)));
 
+    LogicalAddTotals addTotals =
+        new LogicalAddTotals(
+            relation,
+            Collections.singletonList(DSL.named("price", DSL.ref("price", ExprCoreType.INTEGER))),
+            "Total",
+            null);
+
     return Stream.of(
             relation,
             tableScanBuilder,
@@ -174,7 +182,8 @@ class LogicalPlanNodeVisitorTest {
             nested,
             cursor,
             closeCursor,
-            trendline)
+            trendline,
+            addTotals)
         .map(Arguments::of);
   }
 

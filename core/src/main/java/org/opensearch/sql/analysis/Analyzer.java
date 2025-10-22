@@ -57,6 +57,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -118,6 +119,7 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalAddTotals;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -518,6 +520,30 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /** Build {@link LogicalAddTotals}. */
+  @Override
+  public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    
+    // Analyze field list expressions if provided
+    List<NamedExpression> fieldExpressions = new ArrayList<>();
+    for (Field field : node.getFieldList()) {
+      NamedExpression namedExpr = namedExpressionAnalyzer.analyze(field, context);
+      fieldExpressions.add(namedExpr);
+    }
+    
+    // Extract label and labelField from options
+    String label = node.getOptions().containsKey("label") 
+        ? (String) node.getOptions().get("label").getValue()
+        : "Total";
+        
+    String labelField = node.getOptions().containsKey("labelfield")
+        ? (String) node.getOptions().get("labelfield").getValue()
+        : null;
+    
+    return new LogicalAddTotals(child, fieldExpressions, label, labelField);
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
