@@ -149,6 +149,7 @@ public enum BuiltinFunctionName {
   SYSDATE(FunctionName.of("sysdate")),
 
   /** Text Functions. */
+  TOSTRING(FunctionName.of("tostring")),
   TONUMBER(FunctionName.of("tonumber")),
 
   /** IP Functions. */
