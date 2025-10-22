@@ -414,24 +414,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
 
-  public DataTypeFunctionCallContext createDataTypeFunctionCallContext(String castExpression) {
-    // Create a case-insensitive character stream from the input
-    CaseInsensitiveCharStream charStream = new CaseInsensitiveCharStream(castExpression);
-
-    // Create lexer and parser
-    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(charStream);
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    OpenSearchPPLParser parser = new OpenSearchPPLParser(tokens);
-
-    // Parse the expression - cast is part of evalFunctionCall
-    DataTypeFunctionCallContext evalContext = parser.dataTypeFunctionCall();
-    return evalContext;
-  }
-
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
-      return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+    return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
   }
 
   @Override
