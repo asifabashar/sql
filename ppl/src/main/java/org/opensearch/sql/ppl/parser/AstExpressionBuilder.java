@@ -431,39 +431,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
-    if (ctx.functionArgs() != null) {
-
-      ParseTree rootNode = ctx.getChild(0);
-      String functionName = rootNode.getText();
-      final String mappedName =
-          FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
-      System.out.println(mappedName);
-      if (mappedName != null && mappedName.equals("tostring")) {
-        if (ctx.functionArgs().functionArg().size() == 1) {
-          List<OpenSearchPPLParser.FunctionArgContext> functionArgs =
-              ctx.functionArgs().functionArg();
-
-          String castExpresstion =
-              String.format("cast( %s as String)", functionArgs.getFirst().getText());
-          DataTypeFunctionCallContext toStringDataTypeConversionContext =
-              this.createDataTypeFunctionCallContext(castExpresstion);
-          return new Cast(
-              visit(toStringDataTypeConversionContext.logicalExpression()),
-              visit(toStringDataTypeConversionContext.convertedDataType()));
-          //
-        } else {
-          return buildFunction(mappedName, ctx.functionArgs().functionArg());
-        }
-      } else if (mappedName != null && mappedName.equals("tonumber")) {
-
-          return buildFunction(mappedName, ctx.functionArgs().functionArg());
-
-      }  else {
-        return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
-      }
-    } else {
       return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
-    }
   }
 
   @Override
