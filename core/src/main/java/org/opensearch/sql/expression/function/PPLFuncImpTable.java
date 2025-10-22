@@ -211,6 +211,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
@@ -232,7 +233,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;

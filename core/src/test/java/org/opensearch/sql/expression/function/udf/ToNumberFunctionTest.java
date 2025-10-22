@@ -7,8 +7,6 @@ package org.opensearch.sql.expression.function.udf;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.math.BigDecimal;
-import java.util.Locale;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
@@ -116,55 +114,77 @@ public class ToNumberFunctionTest {
 
   @Test
   void testToNumberInvalidBase() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("123", 1);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("123", 37);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("123", 0);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("123", -1);
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("123", 1);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("123", 37);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("123", 0);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("123", -1);
+        });
   }
 
   @Test
   void testToNumberInvalidDigits() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("12A", 10);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("102", 2);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("189", 8);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("GHI", 16);
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("12A", 10);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("102", 2);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("189", 8);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("GHI", 16);
+        });
   }
 
   @Test
   void testToNumberInvalidFractionalDigits() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("10.2", 2);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("FF.G", 16);
-    });
-    
-    assertThrows(IllegalArgumentException.class, () -> {
-      ToNumberFunction.toNumber("123.ABC", 10);
-    });
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("10.2", 2);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("FF.G", 16);
+        });
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          ToNumberFunction.toNumber("123.ABC", 10);
+        });
   }
 
   @Test
@@ -177,8 +197,10 @@ public class ToNumberFunctionTest {
 
   @Test
   void testToNumberLargeNumbers() {
-    assertEquals(Integer.MAX_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MAX_VALUE), 10));
-    assertEquals(Integer.MIN_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MIN_VALUE), 10));
+    assertEquals(
+        Integer.MAX_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MAX_VALUE), 10));
+    assertEquals(
+        Integer.MIN_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MIN_VALUE), 10));
   }
 
   @Test
