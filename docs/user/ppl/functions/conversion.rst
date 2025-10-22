@@ -86,7 +86,7 @@ Description
 >>>>>>>>>>>
 The following usage options are available, depending on the parameter types and the number of parameters.
 
-Usage with format type: tonumber(string, [base]): Converts the value in first argument  to provided base type string in second argument. If second argument is not provided, then it converts to base 10 number representation.
+Usage: tonumber(string, [base]) converts the value in first argument to provided base type string in second argument. If second argument is not provided, then it converts to base 10 number representation.
 Return type: Number
 
 
