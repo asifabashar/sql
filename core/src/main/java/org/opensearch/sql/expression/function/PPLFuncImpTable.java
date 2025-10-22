@@ -1062,7 +1062,6 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
-
       register(
           LOG,
           (FunctionImp2)
