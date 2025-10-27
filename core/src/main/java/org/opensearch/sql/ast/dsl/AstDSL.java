@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -722,5 +723,13 @@ public class AstDSL {
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
   public static Field referImplicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+  }
+
+  /** Build AddTotals command */
+  public static AddTotals addTotals(
+      UnresolvedPlan child,
+      List<Field> fieldList,
+      java.util.Map<String, Literal> options) {
+    return new AddTotals(fieldList, options).attach(child);
   }
 }

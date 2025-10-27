@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -439,6 +440,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMultisearch(Multisearch node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAddTotals(AddTotals node, C context) {
     return visitChildren(node, context);
   }
 }

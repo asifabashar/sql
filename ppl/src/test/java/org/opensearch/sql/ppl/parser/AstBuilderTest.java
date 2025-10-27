@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.dsl.AstDSL.addTotals;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -1266,5 +1267,54 @@ public class AstBuilderTest {
   public void testReplaceCommandWithMultiplePairs() {
     // Test multiple pattern/replacement pairs
     plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
+  }
+
+  @Test
+  public void testAddTotalsCommand() {
+    assertEqual(
+        "source=t | addtotals",
+        AstDSL.addTotals(relation("t"), emptyList(), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testAddTotalsCommandWithFields() {
+    assertEqual(
+        "source=t | addtotals price, quantity",
+        AstDSL.addTotals(
+            relation("t"),
+            Arrays.asList(field("price"), field("quantity")),
+            ImmutableMap.of()));
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabel() {
+    assertEqual(
+        "source=t | addtotals label='Grand Total'",
+        AstDSL.addTotals(
+            relation("t"),
+            emptyList(),
+            ImmutableMap.of("label", stringLiteral("Grand Total"))));
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabelField() {
+    assertEqual(
+        "source=t | addtotals labelfield='category'",
+        AstDSL.addTotals(
+            relation("t"),
+            emptyList(),
+            ImmutableMap.of("labelfield", stringLiteral("category"))));
+  }
+
+  @Test
+  public void testAddTotalsCommandWithFieldsAndOptions() {
+    assertEqual(
+        "source=t | addtotals price, quantity label='Total' labelfield='type'",
+        AstDSL.addTotals(
+            relation("t"),
+            Arrays.asList(field("price"), field("quantity")),
+            ImmutableMap.of(
+                "label", stringLiteral("Total"),
+                "labelfield", stringLiteral("type"))));
   }
 }
