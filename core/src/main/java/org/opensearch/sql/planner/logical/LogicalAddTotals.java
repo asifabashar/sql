@@ -7,17 +7,14 @@ package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 
 /**
- * Logical plan for the AddTotals operation.
- * This operation computes totals for numeric fields and appends a totals row
- * to the end of the result set.
+ * Logical plan for the AddTotals operation. This operation computes totals for numeric fields and
+ * appends a totals row to the end of the result set.
  */
 @Getter
 @ToString
@@ -42,10 +39,7 @@ public class LogicalAddTotals extends LogicalPlan {
    * @param labelField Field name to use for the label
    */
   public LogicalAddTotals(
-      LogicalPlan child,
-      List<NamedExpression> fieldList,
-      String label,
-      String labelField) {
+      LogicalPlan child, List<NamedExpression> fieldList, String label, String labelField) {
     super(Collections.singletonList(child));
     this.fieldList = fieldList;
     this.label = label != null ? label : "Total";

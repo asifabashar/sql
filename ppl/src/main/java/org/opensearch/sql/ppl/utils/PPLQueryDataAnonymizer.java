@@ -52,46 +52,7 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
-import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.Append;
-import org.opensearch.sql.ast.tree.AppendCol;
-import org.opensearch.sql.ast.tree.Bin;
-import org.opensearch.sql.ast.tree.CountBin;
-import org.opensearch.sql.ast.tree.Dedupe;
-import org.opensearch.sql.ast.tree.DefaultBin;
-import org.opensearch.sql.ast.tree.DescribeRelation;
-import org.opensearch.sql.ast.tree.Eval;
-import org.opensearch.sql.ast.tree.Expand;
-import org.opensearch.sql.ast.tree.FillNull;
-import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.Flatten;
-import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Join;
-import org.opensearch.sql.ast.tree.Lookup;
-import org.opensearch.sql.ast.tree.MinSpanBin;
-import org.opensearch.sql.ast.tree.Multisearch;
-import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Patterns;
-import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RangeBin;
-import org.opensearch.sql.ast.tree.RareTopN;
-import org.opensearch.sql.ast.tree.Regex;
-import org.opensearch.sql.ast.tree.Relation;
-import org.opensearch.sql.ast.tree.Rename;
-import org.opensearch.sql.ast.tree.Replace;
-import org.opensearch.sql.ast.tree.Reverse;
-import org.opensearch.sql.ast.tree.Rex;
-import org.opensearch.sql.ast.tree.SPath;
-import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.ast.tree.SpanBin;
-import org.opensearch.sql.ast.tree.SubqueryAlias;
-import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
-import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.*;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -723,6 +684,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     return builder.toString();
   }
+
+    @Override
+    public String visitAddTotals(AddTotals node, String context) {
+        String child = node.getChild().get(0).accept(this, context);
+        StringBuilder builder = new StringBuilder();
+        builder.append(child).append(" | addTotals");
+        return builder.toString();
+    }
 
   @Override
   public String visitPatterns(Patterns node, String context) {

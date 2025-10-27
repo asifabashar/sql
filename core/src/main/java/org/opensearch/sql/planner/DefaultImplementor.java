@@ -6,8 +6,8 @@
 package org.opensearch.sql.planner;
 
 import org.opensearch.sql.executor.pagination.PlanSerializer;
-import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalAddTotals;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
@@ -129,10 +129,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitAddTotals(LogicalAddTotals node, C context) {
     return new AddTotalsOperator(
-        visitChild(node, context),
-        node.getFieldList(),
-        node.getLabel(),
-        node.getLabelField());
+        visitChild(node, context), node.getFieldList(), node.getLabel(), node.getLabelField());
   }
 
   @Override

@@ -526,23 +526,25 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    
+
     // Analyze field list expressions if provided
     List<NamedExpression> fieldExpressions = new ArrayList<>();
     for (Field field : node.getFieldList()) {
       NamedExpression namedExpr = namedExpressionAnalyzer.analyze(field, context);
       fieldExpressions.add(namedExpr);
     }
-    
+
     // Extract label and labelField from options
-    String label = node.getOptions().containsKey("label") 
-        ? (String) node.getOptions().get("label").getValue()
-        : "Total";
-        
-    String labelField = node.getOptions().containsKey("labelfield")
-        ? (String) node.getOptions().get("labelfield").getValue()
-        : null;
-    
+    String label =
+        node.getOptions().containsKey("label")
+            ? (String) node.getOptions().get("label").getValue()
+            : "Total";
+
+    String labelField =
+        node.getOptions().containsKey("labelfield")
+            ? (String) node.getOptions().get("labelfield").getValue()
+            : null;
+
     return new LogicalAddTotals(child, fieldExpressions, label, labelField);
   }
 

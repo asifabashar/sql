@@ -16,15 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 
 /**
- * Physical operator for AddTotals operation.
- * This operator computes totals for numeric fields and appends a totals row
- * to the end of the result set.
+ * Physical operator for AddTotals operation. This operator computes totals for numeric fields and
+ * appends a totals row to the end of the result set.
  */
 @EqualsAndHashCode(callSuper = false)
 @ToString
@@ -59,67 +57,70 @@ public class AddTotalsOperator extends PhysicalPlan {
   @Override
   public void open() {
     super.open();
-    
+    input.open();
+
     // Collect all input rows and compute totals
     List<ExprValue> allRows = new ArrayList<>();
-    ImmutableMap.Builder<String, ExprValue> totalsBuilder = ImmutableMap.builder();
-    boolean firstRow = true;
-    
+
     while (input.hasNext()) {
       ExprValue row = input.next();
       allRows.add(row);
-      
-      if (firstRow) {
-        // Initialize totals for numeric fields
-        row.tupleValue().forEach((fieldName, fieldValue) -> {
-          if (shouldIncludeField(fieldName, fieldValue) && isNumericType(fieldValue)) {
-            totalsBuilder.put(fieldName, LiteralExpression.of(0).valueOf());
-          } else if (shouldSetLabel(fieldName)) {
-            totalsBuilder.put(fieldName, LiteralExpression.of(label).valueOf());
-          } else {
-            // Non-numeric fields get empty string in totals row
-            totalsBuilder.put(fieldName, LiteralExpression.of("").valueOf());
-          }
-        });
-        firstRow = false;
-      }
     }
-    
+
     // Calculate totals by iterating through all collected rows
     ImmutableMap.Builder<String, ExprValue> finalTotalsBuilder = ImmutableMap.builder();
-    
+
     if (!allRows.isEmpty()) {
       ExprValue firstRowValue = allRows.get(0);
-      firstRowValue.tupleValue().forEach((fieldName, fieldValue) -> {
-        if (shouldIncludeField(fieldName, fieldValue) && isNumericType(fieldValue)) {
-          // Calculate sum for this numeric field
-          double total = 0.0;
-          for (ExprValue row : allRows) {
-            ExprValue value = row.tupleValue().get(fieldName);
-            if (value != null && !value.isNull() && !value.isMissing() && isNumericType(value)) {
-              try {
-                total += value.doubleValue();
-              } catch (Exception e) {
-                // Skip non-numeric values
-              }
-            }
-          }
-          finalTotalsBuilder.put(fieldName, LiteralExpression.of(total).valueOf());
-        } else if (shouldSetLabel(fieldName)) {
-          finalTotalsBuilder.put(fieldName, LiteralExpression.of(label).valueOf());
-        } else {
-          // Non-numeric fields get empty string in totals row
-          finalTotalsBuilder.put(fieldName, LiteralExpression.of("").valueOf());
-        }
-      });
+      firstRowValue
+          .tupleValue()
+          .forEach(
+              (fieldName, fieldValue) -> {
+                if (shouldIncludeField(fieldName) && isNumericType(fieldValue)) {
+                  // Calculate sum for this numeric field
+                  double total = 0.0;
+                  for (ExprValue row : allRows) {
+                    ExprValue value = row.tupleValue().get(fieldName);
+                    if (value != null
+                        && !value.isNull()
+                        && !value.isMissing()
+                        && isNumericType(value)) {
+                      try {
+                        total += value.doubleValue();
+                      } catch (Exception e) {
+                        // Skip non-numeric values
+                      }
+                    }
+                  }
+                  finalTotalsBuilder.put(fieldName, ExprValueUtils.doubleValue(total));
+                } else if (shouldSetLabel(fieldName)) {
+                  finalTotalsBuilder.put(fieldName, ExprValueUtils.stringValue(label));
+                } else {
+                  // Non-numeric fields get missing value in totals row
+                  finalTotalsBuilder.put(fieldName, ExprValueUtils.LITERAL_MISSING);
+                }
+              });
     }
-    
+
+    // If no labelField specified and no existing field for label, add default Total field
+    if (labelField == null && !allRows.isEmpty()) {
+      finalTotalsBuilder.put("Total", ExprValueUtils.stringValue(label));
+    }
+
     // Create the combined result list: original rows + totals row
     List<ExprValue> combinedResults = new ArrayList<>(allRows);
-    if (!finalTotalsBuilder.build().isEmpty()) {
-      combinedResults.add(ExprTupleValue.fromExprValueMap(finalTotalsBuilder.build()));
+    ImmutableMap<String, ExprValue> totalsMap = finalTotalsBuilder.build();
+    if (!totalsMap.isEmpty()) {
+      combinedResults.add(ExprTupleValue.fromExprValueMap(totalsMap));
+    } else if (allRows.isEmpty()) {
+      // Even with no data, create a totals row with just the label
+      if (labelField == null) {
+        combinedResults.add(
+            ExprTupleValue.fromExprValueMap(
+                ImmutableMap.of("Total", ExprValueUtils.stringValue(label))));
+      }
     }
-    
+
     iterator = combinedResults.iterator();
   }
 
@@ -137,23 +138,19 @@ public class AddTotalsOperator extends PhysicalPlan {
   }
 
   /**
-   * Determines if a field should be included in totals calculation.
-   * If fieldList is specified, only those fields are included.
-   * If fieldList is empty, all numeric fields are included.
+   * Determines if a field should be included in totals calculation. If fieldList is specified, only
+   * those fields are included. If fieldList is empty, all numeric fields are included.
    */
-  private boolean shouldIncludeField(String fieldName, ExprValue fieldValue) {
+  private boolean shouldIncludeField(String fieldName) {
     if (fieldList.isEmpty()) {
       return true; // Include all fields when no specific fields are specified
     }
-    
+
     // Check if this field is in the specified field list
-    return fieldList.stream()
-        .anyMatch(namedExpr -> namedExpr.getNameOrAlias().equals(fieldName));
+    return fieldList.stream().anyMatch(namedExpr -> namedExpr.getNameOrAlias().equals(fieldName));
   }
 
-  /**
-   * Determines if this field should contain the label value.
-   */
+  /** Determines if this field should contain the label value. */
   private boolean shouldSetLabel(String fieldName) {
     if (labelField != null) {
       return fieldName.equals(labelField);
@@ -162,18 +159,28 @@ public class AddTotalsOperator extends PhysicalPlan {
     return false; // For now, we'll handle this in the totals calculation
   }
 
-  /**
-   * Checks if the given ExprValue represents a numeric type.
-   */
+  /** Checks if the given ExprValue represents a numeric type. */
   private boolean isNumericType(ExprValue value) {
     if (value == null || value.isNull() || value.isMissing()) {
       return false;
     }
-    
-    ExprCoreType type = value.type();
-    return type == ExprCoreType.INTEGER 
+
+    ExprCoreType type = (ExprCoreType) value.type();
+    return type == ExprCoreType.INTEGER
         || type == ExprCoreType.LONG
         || type == ExprCoreType.FLOAT
         || type == ExprCoreType.DOUBLE;
+  }
+
+  public List<NamedExpression> getFieldList() {
+    return fieldList;
+  }
+
+  public String getLabel() {
+    return label;
+  }
+
+  public String getLabelField() {
+    return labelField;
   }
 }
