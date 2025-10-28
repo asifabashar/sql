@@ -46,7 +46,7 @@ Cast to string example::
     +-------+------+------------+
     | cbool | cint | cdate      |
     |-------+------+------------|
-    | true  | 1    | 2012-08-07 |
+    | TRUE  | 1    | 2012-08-07 |
     +-------+------+------------+
 
 Cast to number example::
@@ -79,52 +79,41 @@ Cast function can be chained::
     | True  |
     +-------+
 
-TONUMBER
------------
 
-Description
->>>>>>>>>>>
+IMPLICIT (AUTO) TYPE CONVERSION
+-------------------------------
 
-The following usage options are available, depending on the parameter types and the number of parameters.
+Implicit conversion is automatic casting. When a function does not have an exact match for the
+input types, the engine looks for another signature that can safely work with the values. It picks
+the option that requires the least stretching of the original types, so you can mix literals and
+fields without adding ``CAST`` everywhere.
 
-Usage: tonumber(string, [base]) converts the value in first argument to provided base type string in second argument. If second argument is not provided, then it converts to base 10 number representation.
+String to numeric
+>>>>>>>>>>>>>>>>>
 
-Return type: Number
+When a string stands in for a number we simply parse the text:
 
+- The value must be something like ``"3.14"`` or ``"42"``. Anything else causes the query to fail.
+- If a string appears next to numeric arguments, it is treated as a ``DOUBLE`` so the numeric
+  overload of the function can run.
 
-You can use this function with the eval commands and as part of eval expressions.
-Base values can be between 2 and 36.
+Use string in arithmetic operator example ::
 
-You can use this function to convert a string representation of a binary number to return the corresponding number in base 10.
-
-Following example converts a string in binary to the number representation::
-
-    os> source=EMP | eval int_value = tonumber('010101',2) | fields int_value | head 1
+    os> source=people | eval divide="5"/10, multiply="5" * 10, add="5" + 10, minus="5" - 10, concat="5" + "5" | fields divide, multiply, add, minus, concat
     fetched rows / total rows = 1/1
-    +---------------+
-    |  int_value    |
-    |---------------+
-    |  21.0         |
-    +---------------+
+    +--------+----------+------+-------+--------+
+    | divide | multiply | add  | minus | concat |
+    |--------+----------+------+-------+--------|
+    | 0.5    | 50.0     | 15.0 | -5.0  | 55     |
+    +--------+----------+------+-------+--------+
 
+Use string in comparison operator example ::
 
-Following example converts a string in hex to the number representation::
-
-
-    os> source=EMP | eval int_value = tonumber('FA34',16) | fields int_value | head 1
+    os> source=people | eval e="1000"==1000, en="1000"!=1000, ed="1000"==1000.0, edn="1000"!=1000.0, l="1000">999, ld="1000">999.9, i="malformed"==1000 | fields e, en, ed, edn, l, ld, i
     fetched rows / total rows = 1/1
-    +---------------+
-    | int_value     |
-    |---------------+
-    | 64052.0       |
-    +---------------+
+    +------+-------+------+-------+------+------+------+
+    | e    | en    | ed   | edn   | l    | ld   | i    |
+    |------+-------+------+-------+------+------+------|
+    | True | False | True | False | True | True | null |
+    +------+-------+------+-------+------+------+------+
 
-Following example converts a string in decimal  to the number representation::
-
-     os> source=EMP | eval int_value = tonumber('4598') | fields int_value | head 1
-     fetched rows / total rows = 1/1
-    +---------------+
-    | int_value     |
-    |---------------+
-    | 4598.0        |
-    +---------------+
