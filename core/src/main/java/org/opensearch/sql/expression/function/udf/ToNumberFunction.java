@@ -104,18 +104,26 @@ public class ToNumberFunction extends ImplementorUDF {
 
       // Convert fractional part
       double fracValue = 0;
-      double divisor = base;
-      for (char c : fracPart.toCharArray()) {
-        int digit = Character.digit(c, base);
-        if (digit < 0) throw new IllegalArgumentException("Invalid digit: " + c);
-        fracValue += (double) digit / divisor;
-        divisor *= base;
+      if (base == 10) {
+          double divisor = base;
+          for (char c : fracPart.toCharArray()) {
+              int digit = Character.digit(c, base);
+              if (digit < 0) throw new IllegalArgumentException("Invalid digit: " + c);
+              fracValue += (double) digit / divisor;
+              divisor *= base;
+          }
       }
 
       double result = intValue + fracValue;
-      return isNegative ? -result : result;
+      result =  isNegative ? -result : result;
+      if (base == 10) {
+          return result;
+      }
+      else {
+          return (long) result;
+      }
     } else {
-      return Integer.parseInt(numStr, base);
+      return Long.parseLong(numStr, base);
     }
   }
 }

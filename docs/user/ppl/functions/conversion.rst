@@ -139,7 +139,7 @@ You can use this function to convert a string representation of a binary number 
 
 Following example converts a string in binary to the number representation::
 
-    os> source=EMP | eval int_value = tonumber('010101',2) | fields int_value | head 1
+    os> source=people | eval int_value = tonumber('010101',2) | fields int_value | head 1
     fetched rows / total rows = 1/1
     +---------------+
     |  int_value    |
@@ -151,7 +151,7 @@ Following example converts a string in binary to the number representation::
 Following example converts a string in hex to the number representation::
 
 
-    os> source=EMP | eval int_value = tonumber('FA34',16) | fields int_value | head 1
+    os> source=people | eval int_value = tonumber('FA34',16) | fields int_value | head 1
     fetched rows / total rows = 1/1
     +---------------+
     | int_value     |
@@ -161,7 +161,7 @@ Following example converts a string in hex to the number representation::
 
 Following example converts a string in decimal  to the number representation::
 
-     os> source=EMP | eval int_value = tonumber('4598') | fields int_value | head 1
+     os> source=people | eval int_value = tonumber('4598') | fields int_value | head 1
      fetched rows / total rows = 1/1
     +---------------+
     | int_value     |
