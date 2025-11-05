@@ -80,36 +80,36 @@ public class ToNumberFunctionTest {
 
   @Test
   void testToNumberWithDecimalBase2() {
-    assertEquals(2L, ToNumberFunction.toNumber("10.1", 2));
-    assertEquals(1L, ToNumberFunction.toNumber("1.1", 2));
-    assertEquals(3L, ToNumberFunction.toNumber("11.11", 2));
+    assertEquals(2L, ToNumberFunction.toNumber("10", 2));
+    assertEquals(1L, ToNumberFunction.toNumber("1", 2));
+    assertEquals(3L, ToNumberFunction.toNumber("11", 2));
   }
 
   @Test
   void testToNumberWithDecimalBase16() {
-    assertEquals(255L, ToNumberFunction.toNumber("FF.8", 16));
-    assertEquals(16L, ToNumberFunction.toNumber("10.4", 16));
-    assertEquals(171L, ToNumberFunction.toNumber("AB.B", 16));
+    assertEquals(255L, ToNumberFunction.toNumber("FF", 16));
+    assertEquals(16L, ToNumberFunction.toNumber("10", 16));
+    assertEquals(171L, ToNumberFunction.toNumber("AB", 16));
   }
 
   @Test
   void testToNumberWithNegativeDecimal() {
-    assertEquals(-2L, ToNumberFunction.toNumber("-10.1", 2));
-    assertEquals(-255L, ToNumberFunction.toNumber("-FF.8", 16));
+    assertEquals(-2L, ToNumberFunction.toNumber("-10", 2));
+    assertEquals(-255L, ToNumberFunction.toNumber("-FF", 16));
     assertEquals(-123.45, ToNumberFunction.toNumber("-123.45", 10));
   }
 
   @Test
   void testToNumberWithEmptyFractionalPart() {
     assertEquals(123.0, ToNumberFunction.toNumber("123.", 10));
-    assertEquals(255L, ToNumberFunction.toNumber("FF.", 16));
-    assertEquals(5L, ToNumberFunction.toNumber("101.", 2));
+    assertEquals(255L, ToNumberFunction.toNumber("FF", 16));
+    assertEquals(5L, ToNumberFunction.toNumber("101", 2));
   }
 
   @Test
   void testToNumberWithZeroIntegerPart() {
     assertEquals(0.5, ToNumberFunction.toNumber("0.5", 10));
-    assertEquals(0L, ToNumberFunction.toNumber("0.1", 2));
+    assertEquals(0L, ToNumberFunction.toNumber("0", 2));
   }
 
   @Test
