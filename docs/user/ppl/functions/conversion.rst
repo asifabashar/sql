@@ -43,21 +43,21 @@ Cast to string example::
 
     os> source=people | eval `cbool` = CAST(true as string), `cint` = CAST(1 as string), `cdate` = CAST(CAST('2012-08-07' as date) as string) | fields `cbool`, `cint`, `cdate`
     fetched rows / total rows = 1/1
-    +-------+------+------------+
-    | cbool | cint | cdate      |
-    |-------+------+------------|
-    | TRUE  | 1    | 2012-08-07 |
-    +-------+------+------------+
+    +---------+--------+------------+
+    | cbool   | cint   | cdate      |
+    |---------+--------+------------|
+    | TRUE    | 1      | 2012-08-07 |
+    +---------+--------+------------+
 
 Cast to number example::
 
     os> source=people | eval `cbool` = CAST(true as int), `cstring` = CAST('1' as int) | fields `cbool`, `cstring`
     fetched rows / total rows = 1/1
-    +-------+---------+
-    | cbool | cstring |
-    |-------+---------|
-    | 1     | 1       |
-    +-------+---------+
+    +---------+-----------+
+    | cbool   | cstring   |
+    |---------+-----------|
+    | 1       | 1         |
+    +---------+-----------+
 
 Cast to date example::
 
@@ -73,11 +73,11 @@ Cast function can be chained::
 
     os> source=people | eval `cbool` = CAST(CAST(true as string) as boolean) | fields `cbool`
     fetched rows / total rows = 1/1
-    +-------+
-    | cbool |
-    |-------|
-    | True  |
-    +-------+
+    +---------+
+    | cbool   |
+    |---------|
+    | True    |
+    +---------+
 
 
 IMPLICIT (AUTO) TYPE CONVERSION
@@ -101,11 +101,11 @@ Use string in arithmetic operator example ::
 
     os> source=people | eval divide="5"/10, multiply="5" * 10, add="5" + 10, minus="5" - 10, concat="5" + "5" | fields divide, multiply, add, minus, concat
     fetched rows / total rows = 1/1
-    +--------+----------+------+-------+--------+
-    | divide | multiply | add  | minus | concat |
-    |--------+----------+------+-------+--------|
-    | 0.5    | 50.0     | 15.0 | -5.0  | 55     |
-    +--------+----------+------+-------+--------+
+    +----------+------------+-------+---------+----------+
+    | divide   | multiply   | add   | minus   | concat   |
+    |----------+------------+-------+---------+----------|
+    | 0.5      | 50.0       | 15.0  | -5.0    | 55       |
+    +----------+------------+-------+---------+----------+
 
 Use string in comparison operator example ::
 
@@ -120,7 +120,7 @@ Use string in comparison operator example ::
 
 
 TONUMBER
------------
+--------
 
 Description
 >>>>>>>>>>>
@@ -141,30 +141,30 @@ Following example converts a string in binary to the number representation::
 
     os> source=people | eval int_value = tonumber('010101',2) | fields int_value | head 1
     fetched rows / total rows = 1/1
-    +---------------+
-    |  int_value    |
-    |---------------+
-    |  21.0         |
-    +---------------+
+    +-------------+
+    | int_value   |
+    |-------------|
+    | 21.0        |
+    +-------------+
 
 
 Following example converts a string in hex to the number representation::
 
-
     os> source=people | eval int_value = tonumber('FA34',16) | fields int_value | head 1
     fetched rows / total rows = 1/1
-    +---------------+
-    | int_value     |
-    |---------------+
-    | 64052.0       |
-    +---------------+
+    +-------------+
+    | int_value   |
+    |-------------|
+    | 64052.0     |
+    +-------------+
 
 Following example converts a string in decimal  to the number representation::
 
-     os> source=people | eval int_value = tonumber('4598') | fields int_value | head 1
-     fetched rows / total rows = 1/1
-    +---------------+
-    | int_value     |
-    |---------------+
-    | 4598.0        |
-    +---------------+
+    os> source=people | eval int_value = tonumber('4598') | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +-------------+
+    | int_value   |
+    |-------------|
+    | 4598.0      |
+    +-------------+
+

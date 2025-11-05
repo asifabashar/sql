@@ -166,8 +166,6 @@ public class ToNumberFunctionTest {
         });
   }
 
-
-
   @Test
   void testToNumberEdgeCases() {
     assertEquals(0L, ToNumberFunction.toNumber("0", 2));
@@ -179,9 +177,9 @@ public class ToNumberFunctionTest {
   @Test
   void testToNumberLargeNumbers() {
     assertEquals(
-            (long) Integer.MAX_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MAX_VALUE), 10));
+        (long) Integer.MAX_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MAX_VALUE), 10));
     assertEquals(
-            (long) Integer.MIN_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MIN_VALUE), 10));
+        (long) Integer.MIN_VALUE, ToNumberFunction.toNumber(String.valueOf(Integer.MIN_VALUE), 10));
   }
 
   @Test
