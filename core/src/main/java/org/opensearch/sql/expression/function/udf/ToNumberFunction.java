@@ -13,7 +13,6 @@ import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
@@ -35,8 +34,6 @@ public class ToNumberFunction extends ImplementorUDF {
         new org.opensearch.sql.expression.function.udf.ToNumberFunction.ToNumberImplementor(),
         NullPolicy.ANY);
   }
-
-
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
