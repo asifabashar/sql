@@ -36,14 +36,7 @@ public class ToNumberFunction extends ImplementorUDF {
         NullPolicy.ANY);
   }
 
-  public static final String DURATION_FORMAT = "duration";
-  public static final String DURATION_MILLIS_FORMAT = "duration_millis";
-  public static final String HEX_FORMAT = "hex";
-  public static final String COMMAS_FORMAT = "commas";
-  public static final String BINARY_FORMAT = "binary";
-  public static final SqlFunctions.DateFormatFunction dateTimeFormatter =
-      new SqlFunctions.DateFormatFunction();
-  public static final String format24hour = "%H:%M:%S"; // 24-hour format
+
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
