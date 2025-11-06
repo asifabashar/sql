@@ -151,12 +151,7 @@ class LogicalPlanNodeVisitorTest {
                     AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
                     ExprCoreType.DOUBLE)));
 
-    LogicalAddTotals addTotals =
-        new LogicalAddTotals(
-            relation,
-            Collections.singletonList(DSL.named("price", DSL.ref("price", ExprCoreType.INTEGER))),
-            "Total",
-            null);
+
 
     return Stream.of(
             relation,
@@ -181,8 +176,7 @@ class LogicalPlanNodeVisitorTest {
             nested,
             cursor,
             closeCursor,
-            trendline,
-            addTotals)
+            trendline)
         .map(Arguments::of);
   }
 

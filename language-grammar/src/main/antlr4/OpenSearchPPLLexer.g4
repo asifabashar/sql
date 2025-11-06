@@ -48,6 +48,8 @@ TRENDLINE:                          'TRENDLINE';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
+ROW:                                'ROW';
+COL:                                'COL';
 EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
@@ -60,6 +62,7 @@ OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 FIELDLIST:                          'FIELDLIST';
 LABELFIELD:                         'LABELFIELD';
+FIELDNAME:                          'FIELDNAME';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
 

@@ -779,7 +779,9 @@ public class PPLSyntaxParserTest {
 
   @Test
   public void testAddTotalsCommandWithAllOptionsShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals price, quantity label='Total' labelfield='type'");
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | addtotals price, quantity label='Total' labelfield='type'");
     assertNotEquals(null, tree);
   }
 }

@@ -6,7 +6,6 @@
 package org.opensearch.sql.planner;
 
 import org.opensearch.sql.executor.pagination.PlanSerializer;
-import org.opensearch.sql.planner.logical.LogicalAddTotals;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -27,7 +26,6 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
-import org.opensearch.sql.planner.physical.AddTotalsOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
@@ -126,11 +124,6 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
         visitChild(node, context), node.getAggregatorList(), node.getGroupByList());
   }
 
-  @Override
-  public PhysicalPlan visitAddTotals(LogicalAddTotals node, C context) {
-    return new AddTotalsOperator(
-        visitChild(node, context), node.getFieldList(), node.getLabel(), node.getLabelField());
-  }
 
   @Override
   public PhysicalPlan visitFilter(LogicalFilter node, C context) {

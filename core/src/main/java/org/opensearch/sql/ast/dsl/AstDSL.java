@@ -725,11 +725,4 @@ public class AstDSL {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 
-  /** Build AddTotals command */
-  public static AddTotals addTotals(
-      UnresolvedPlan child,
-      List<Field> fieldList,
-      java.util.Map<String, Literal> options) {
-    return new AddTotals(fieldList, options).attach(child);
-  }
 }

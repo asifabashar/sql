@@ -1925,16 +1925,207 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return sb.toString();
   }
 
-  /** Transforms visitAddTotals command into SQL-based operations. */
+
+    /** Transforms visitAddTotals command into SQL-based operations. */
+    @Override
+    public RelNode visitAddColTotals(AddColTotals node, CalcitePlanContext context) {
+        visitChildren(node, context);
+
+        // Parse options from the AddTotals node
+        Map<String, Literal> options = node.getOptions();
+        String label = getOptionValue(options, "label", "Total");
+        String labelField = getOptionValue(options, "labelfield", null);
+        // Determine which fields to aggregate
+
+        // Handle row=true option: add a new field that sums all specified fields for each row
+        List<Field> fieldsToAggregate = node.getFieldList();
+        return buildAddRowTotalAggregate(  context, fieldsToAggregate,  true, false, null, labelField, label);
+
+    }
+
+    public RelNode buildAddRowTotalAggregate(CalcitePlanContext context, List<Field> fieldsToAggregate, boolean addColumnTotals, boolean appendTotalsRow, String newColTotalsFieldName, String labelField, String label) {
+
+        // Build aggregation calls for totals calculation
+        boolean fieldNamesChanged = false;
+        RexNode sumExpression = null;
+        List<AggCall> aggCalls = new ArrayList<>();
+        List<String> fieldNameToSum = new ArrayList<>();
+        RelNode originalData = context.relBuilder.peek();
+        List<String> fieldNames = getFieldNamesFromRelNode(originalData);
+        boolean foundLableField = false;
+        // If no specific fields specified, use all numeric fields
+        if (fieldsToAggregate.isEmpty()) {
+            fieldsToAggregate = getAllNumericFields(originalData, context);
+        }
+
+
+        List<RexNode> fieldsToSum = new ArrayList<>();
+        for (String fieldName : fieldNames) {
+            if (shouldAggregateField(fieldName, fieldsToAggregate)) {
+                RexNode fieldRef = context.relBuilder.field(fieldName);
+                if (isNumericField(fieldRef, context)) {
+                    fieldsToSum.add(fieldRef);
+                    if (appendTotalsRow){
+                        AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldName);
+                        aggCalls.add(sumCall);
+                    }
+                    fieldNameToSum.add(fieldName);
+                    if (addColumnTotals) {
+                        if (sumExpression == null) {
+                            sumExpression = fieldRef;
+                        } else {
+                            sumExpression = context.relBuilder.call(
+                                    org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS,
+                                    sumExpression,
+                                    fieldRef
+                            );
+                        }
+
+
+                    }
+                }
+            }
+            if (appendTotalsRow && fieldName.equals(labelField)) {
+                // Use specified label field for the label
+                foundLableField = true;
+            }
+        }
+        if (addColumnTotals && !fieldsToSum.isEmpty()) {
+            // Add the new column with the sum
+            context.relBuilder.projectPlus(context.relBuilder.alias(sumExpression, newColTotalsFieldName)
+            );
+            fieldNamesChanged = true;
+        }
+        if (appendTotalsRow) {
+            if (!foundLableField && ( labelField!= null)) {
+                context.relBuilder.projectPlus(context.relBuilder.alias(context.relBuilder.literal(null), labelField));
+                fieldNamesChanged = true;
+            }
+        }
+        originalData = context.relBuilder.build();
+        context.relBuilder.push(originalData);
+        if (fieldNamesChanged) {
+            fieldNames = getFieldNamesFromRelNode(originalData);
+        }
+        if (appendTotalsRow) {
+            // Perform aggregation (no group by - single totals row)
+            context.relBuilder.aggregate(
+                    context.relBuilder.groupKey(), // Empty group key for single totals row
+                    aggCalls);
+            // 3. Build the totals row with proper field order and labels
+            List<RexNode> selectList = new ArrayList<>();
+            int aggIndex = 0;
+
+            for (String fieldName : fieldNames) {
+
+
+                if (fieldNameToSum.contains(fieldName)) {
+                    selectList.add(context.relBuilder.alias(context.relBuilder.field(aggIndex++), fieldName));
+
+                } else if (fieldName.equals(labelField)) {
+                    // Use specified label field for the label
+                    selectList.add(context.relBuilder.alias(context.relBuilder.literal(label), fieldName));
+
+                } else {
+                    // Other fields get NULL in totals row
+                    selectList.add(context.relBuilder.alias(context.relBuilder.literal(null), fieldName));
+                }
+            }
+
+            // Project the totals row with proper field order and labels
+            context.relBuilder.project(selectList);
+            RelNode totalsRow = context.relBuilder.build();
+            // 4. Union original data with totals row
+            context.relBuilder.push(originalData);
+            context.relBuilder.push(totalsRow);
+            context.relBuilder.union(true); // Use UNION ALL to preserve order
+        }
+        return context.relBuilder.peek();
+    }
+
+        /** Transforms visitAddTotals command into SQL-based operations. */
   @Override
   public RelNode visitAddTotals(AddTotals node, CalcitePlanContext context) {
-    // 1. Resolve main plan
-      visitChildren(node, context);
-      // Apply count parameter as limit
-      if (node.getCount() != 0) {
-          context.relBuilder.limit(0, node.getCount());
+    // 1. Process child plan first
+    visitChildren(node, context);
+
+    // Parse options from the AddTotals node
+    Map<String, Literal> options = node.getOptions();
+    String label = getOptionValue(options, "label", "Total"); // when col=true , add summary event with this label
+    String labelField = getOptionValue(options, "labelfield", null); // when col=true , add summary event with this label field at the end of rows
+    String newColTotalsFieldName = getOptionValue(options, "fieldname", "Total"); // when row=true , add new field as new column
+    boolean addTotalsForEachRow = getBooleanOptionValue(options, "row", true);
+    boolean addTotalsForEachColumn = getBooleanOptionValue(options, "col", false); // when col=true/false check
+
+    // Determine which fields to aggregate
+    List<Field> fieldsToAggregate = node.getFieldList();
+
+    // Handle row=true option: add a new field that sums all specified fields for each row
+    return  buildAddRowTotalAggregate( context, fieldsToAggregate,   addTotalsForEachRow, addTotalsForEachColumn, newColTotalsFieldName, labelField, label);
+  }
+
+  /** Helper method to extract option values from the options map */
+  private String getOptionValue(Map<String, Literal> options, String key, String defaultValue) {
+    if (options.containsKey(key)) {
+      return options.get(key).toString().replace("\"", "");
+    }
+    return defaultValue;
+  }
+
+  /** Helper method to extract boolean option values */
+  private boolean getBooleanOptionValue(
+      Map<String, Literal> options, String key, boolean defaultValue) {
+    if (options.containsKey(key)) {
+      Object value = options.get(key).getValue();
+      if (value instanceof Boolean) {
+        return (Boolean) value;
       }
-      return context.relBuilder.peek();
+      if (value instanceof String) {
+        return Boolean.parseBoolean((String) value);
+      }
+    }
+    return defaultValue;
+  }
+
+  /** Get field names from a RelNode */
+  private List<String> getFieldNamesFromRelNode(RelNode relNode) {
+    return relNode.getRowType().getFieldNames();
+  }
+
+  /** Get all numeric fields from the RelNode */
+  private List<Field> getAllNumericFields(RelNode relNode, CalcitePlanContext context) {
+    List<Field> numericFields = new ArrayList<>();
+    for (String fieldName : relNode.getRowType().getFieldNames()) {
+      if (isNumericFieldName(fieldName, relNode)) {
+        numericFields.add(
+            new Field(new org.opensearch.sql.ast.expression.QualifiedName(fieldName)));
+      }
+    }
+    return numericFields;
+  }
+
+  /** Check if a field should be aggregated based on the field list */
+  private boolean shouldAggregateField(String fieldName, List<Field> fieldsToAggregate) {
+    if (fieldsToAggregate.isEmpty()) {
+      return true; // Aggregate all fields when none specified
+    }
+    return fieldsToAggregate.stream()
+        .anyMatch(field -> field.getField().toString().equals(fieldName));
+  }
+
+  /** Check if a RexNode represents a numeric field */
+  private boolean isNumericField(RexNode rexNode, CalcitePlanContext context) {
+    return rexNode.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+  }
+
+  /** Check if a field name represents a numeric field in the RelNode */
+  private boolean isNumericFieldName(String fieldName, RelNode relNode) {
+    try {
+      RelDataTypeField field = relNode.getRowType().getField(fieldName, false, false);
+      return field != null && field.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   /** Transforms timechart command into SQL-based operations. */

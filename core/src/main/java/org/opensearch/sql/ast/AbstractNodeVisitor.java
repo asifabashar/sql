@@ -446,4 +446,7 @@ public abstract class AbstractNodeVisitor<T, C> {
   public T visitAddTotals(AddTotals node, C context) {
     return visitChildren(node, context);
   }
+  public T visitAddColTotals(AddColTotals node, C context) {
+        return visitChildren(node, context);
+    }
 }
