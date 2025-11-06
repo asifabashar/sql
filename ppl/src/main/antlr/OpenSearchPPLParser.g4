@@ -54,13 +54,13 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
    | headCommand
    | binCommand
-   | topCommand
-   | rareCommand
+   | rareTopCommand
    | grokCommand
    | parseCommand
    | spathCommand
@@ -93,6 +93,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -246,12 +247,40 @@ eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
+streamstatsCommand
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
+   ;
+
+resetBeforeArg
+   : RESET_BEFORE EQUAL logicalExpression
+   ;
+
+resetAfterArg
+   : RESET_AFTER EQUAL logicalExpression
+   ;
+
 dedupCommand
    : DEDUP (number = integerLiteral)? fieldList (KEEPEMPTY EQUAL keepempty = booleanLiteral)? (CONSECUTIVE EQUAL consecutive = booleanLiteral)?
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause
    ;
 
 reverseCommand
@@ -309,12 +338,14 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopCommand
+   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
-rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopOption
+   : COUNTFIELD EQUAL countField = stringLiteral
+   | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | USENULL EQUAL useNull = booleanLiteral
    ;
 
 grokCommand
@@ -628,6 +659,10 @@ eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
+streamstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
@@ -811,7 +846,10 @@ fieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
+   : (PLUS | MINUS) sortFieldExpression (ASC | A | DESC | D)  # invalidMixedSortField
+   | (PLUS | MINUS) sortFieldExpression                  # prefixSortField
+   | sortFieldExpression (ASC | A | DESC | D)            # suffixSortField
+   | sortFieldExpression                                 # defaultSortField
    ;
 
 sortFieldExpression
@@ -845,10 +883,12 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
+
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1146,6 +1186,7 @@ extractFunctionCall
 
 simpleDateTimePart
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1214,6 +1255,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
@@ -1325,6 +1367,7 @@ timestampLiteral
 
 intervalUnit
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1434,6 +1477,7 @@ searchableKeyWord
    | VALUE
    | CAST
    | TONUMBER
+   | TOSTRING
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
@@ -1452,7 +1496,13 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
+   | GLOBAL
+   | RESET_BEFORE
+   | RESET_AFTER
    | BUCKET_NULLABLE
+   | USENULL
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

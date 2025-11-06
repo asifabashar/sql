@@ -212,6 +212,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
@@ -833,6 +834,7 @@ public class PPLFuncImpTable {
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
+      registerOperator(CRC32, SqlLibraryOperators.CRC32);
       registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
@@ -853,7 +855,6 @@ public class PPLFuncImpTable {
       registerOperator(MOD, PPLBuiltinOperators.MOD);
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
-      registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
@@ -946,6 +947,13 @@ public class PPLFuncImpTable {
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
+      registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+      register(
+          TOSTRING,
+          (FunctionImp1)
+              (builder, source) ->
+                  builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
+          PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
