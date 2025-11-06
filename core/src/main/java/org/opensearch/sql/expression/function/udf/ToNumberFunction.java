@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import java.math.BigInteger;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -69,50 +70,23 @@ public class ToNumberFunction extends ImplementorUDF {
   @Strict
   public static Number toNumber(String numStr, int base) {
     if (base < 2 || base > 36) {
-      throw new IllegalArgumentException("Base must be between 2 and 36");
+      throw new IllegalArgumentException("Base has to be between 2 and 36.");
     }
-
-    if (numStr.contains(".")) {
-
-      boolean isNegative = numStr.startsWith("-");
-      if (isNegative) {
-        numStr = numStr.substring(1);
-      }
-
-      // Split integer and fractional parts
-      String[] parts = numStr.split("\\.");
-      String intPart = parts[0];
-      String fracPart = parts.length > 1 ? parts[1] : "";
-
-      // Convert integer part
-      double intValue = 0;
-      for (char c : intPart.toCharArray()) {
-        int digit = Character.digit(c, base);
-        if (digit < 0) throw new IllegalArgumentException("Invalid digit: " + c);
-        intValue = intValue * base + digit;
-      }
-
-      // Convert fractional part
-      double fracValue = 0;
+    Number result = null;
+    try {
       if (base == 10) {
-        double divisor = base;
-        for (char c : fracPart.toCharArray()) {
-          int digit = Character.digit(c, base);
-          if (digit < 0) throw new IllegalArgumentException("Invalid digit: " + c);
-          fracValue += (double) digit / divisor;
-          divisor *= base;
+        if (numStr.contains(".")) {
+          result = Double.parseDouble(numStr);
+        } else {
+          result = Long.parseLong(numStr);
         }
-      }
-
-      double result = intValue + fracValue;
-      result = isNegative ? -result : result;
-      if (base == 10) {
-        return result;
       } else {
-        return (long) result;
+        BigInteger bigInteger = new BigInteger(numStr, base);
+        result = bigInteger.longValue();
       }
-    } else {
-      return Long.parseLong(numStr, base);
+    } catch (Exception e) {
+
     }
+    return result;
   }
 }

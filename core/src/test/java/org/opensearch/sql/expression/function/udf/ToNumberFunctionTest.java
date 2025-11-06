@@ -141,29 +141,12 @@ public class ToNumberFunctionTest {
 
   @Test
   void testToNumberInvalidDigits() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          ToNumberFunction.toNumber("12A", 10);
-        });
-
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          ToNumberFunction.toNumber("102", 2);
-        });
-
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          ToNumberFunction.toNumber("189", 8);
-        });
-
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          ToNumberFunction.toNumber("GHI", 16);
-        });
+    assertEquals(null, ToNumberFunction.toNumber("12A", 10));
+    assertEquals(null, ToNumberFunction.toNumber("102", 2));
+    assertEquals(null, ToNumberFunction.toNumber("101.101", 2));
+    assertEquals(null, ToNumberFunction.toNumber("189", 8));
+    assertEquals(null, ToNumberFunction.toNumber("GHI", 16));
+    assertEquals(null, ToNumberFunction.toNumber("FF.8", 16));
   }
 
   @Test
