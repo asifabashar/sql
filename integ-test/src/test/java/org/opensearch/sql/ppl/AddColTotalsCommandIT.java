@@ -76,7 +76,6 @@ public class AddColTotalsCommandIT extends PPLIntegTestCase {
 
         var dataRows = result.getJSONArray("datarows");
         ArrayList<Integer> field_indexes = new ArrayList<>();
-        field_indexes.add(0);
         field_indexes.add(1);
 
         verifyColTotals(dataRows, field_indexes,null);
