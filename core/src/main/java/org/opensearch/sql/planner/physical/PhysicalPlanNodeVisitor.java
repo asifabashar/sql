@@ -103,6 +103,4 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
   public R visitCursorClose(CursorCloseOperator node, C context) {
     return visitNode(node, context);
   }
-
-
 }

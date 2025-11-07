@@ -48,7 +48,6 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
-import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -541,8 +540,16 @@ public class AstDSL {
       List<Argument> noOfResults,
       List<UnresolvedExpression> groupList,
       Field... fields) {
-    return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
-        .attach(input);
+    Integer N =
+        (Integer)
+            Argument.ArgumentMap.of(noOfResults)
+                .getOrDefault("noOfResults", new Literal(10, DataType.INTEGER))
+                .getValue();
+    List<Argument> removed =
+        noOfResults.stream()
+            .filter(argument -> !argument.getArgName().equals("noOfResults"))
+            .toList();
+    return new RareTopN(commandType, N, removed, Arrays.asList(fields), groupList).attach(input);
   }
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
@@ -724,5 +731,4 @@ public class AstDSL {
   public static Field referImplicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
-
 }

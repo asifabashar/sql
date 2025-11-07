@@ -124,7 +124,6 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
         visitChild(node, context), node.getAggregatorList(), node.getGroupByList());
   }
 
-
   @Override
   public PhysicalPlan visitFilter(LogicalFilter node, C context) {
     return new FilterOperator(visitChild(node, context), node.getCondition());
