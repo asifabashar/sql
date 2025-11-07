@@ -52,6 +52,7 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -732,6 +733,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     if (node.getPath() != null) {
       builder.append(" path=").append(MASK_COLUMN);
     }
+    return builder.toString();
+  }
+
+  @Override
+  public String visitAddTotals(AddTotals node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | addTotals");
     return builder.toString();
   }
 

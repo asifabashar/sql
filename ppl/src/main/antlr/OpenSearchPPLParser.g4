@@ -72,6 +72,8 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | addtotalsCommand
+   | addcoltotalsCommand
    | appendCommand
    | expandCommand
    | flattenCommand
@@ -116,6 +118,8 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
+   | ADDTOTALS
+   | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
    | REX
@@ -540,6 +544,27 @@ mlCommand
 
 mlArg
    : (argName = ident EQUAL argValue = literalValue)
+   ;
+
+addtotalsCommand
+   : ADDTOTALS (fieldList)? addtotalsOption*
+   ;
+
+addtotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
+   | (FIELDNAME EQUAL stringLiteral)
+   | (ROW EQUAL booleanLiteral)
+   | (COL EQUAL booleanLiteral)
+   ;
+
+addcoltotalsCommand
+   : ADDCOLTOTALS (fieldList)? addcoltotalsOption*
+   ;
+
+addcoltotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
    ;
 
 // clauses
