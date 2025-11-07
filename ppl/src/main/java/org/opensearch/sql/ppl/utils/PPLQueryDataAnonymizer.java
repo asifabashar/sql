@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AddTotals;
+import org.opensearch.sql.ast.tree.AddColTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -736,13 +737,42 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return builder.toString();
   }
 
+
+
+  public void appendAddTotalsOptionParameters( List<Field> fieldList,java.util.Map<String, Literal> options, StringBuilder builder ){
+
+      if (!fieldList.isEmpty()) {
+          builder.append(visitExpressionList(fieldList, " "));
+      }
+      if (!options.isEmpty()){
+          for (String key : options.keySet()) {
+              String value = options.get(key).toString();
+              if (value.matches(".*\\s.*")){
+                  value = StringUtils.format("'%s'",value);
+              }
+              builder.append(" ").append(key).append("=").append(value);
+
+          }
+      }
+
+  }
   @Override
   public String visitAddTotals(AddTotals node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     StringBuilder builder = new StringBuilder();
-    builder.append(child).append(" | addTotals");
+    builder.append(child).append(" | addtotals");
+    appendAddTotalsOptionParameters( node.getFieldList(),node.getOptions(),builder);
     return builder.toString();
   }
+
+  @Override
+    public String visitAddColTotals(AddColTotals node, String context) {
+        String child = node.getChild().get(0).accept(this, context);
+        StringBuilder builder = new StringBuilder();
+        builder.append(child).append(" | addcoltotals");
+        appendAddTotalsOptionParameters( node.getFieldList(),node.getOptions(),builder);
+        return builder.toString();
+    }
 
   @Override
   public String visitPatterns(Patterns node, String context) {
