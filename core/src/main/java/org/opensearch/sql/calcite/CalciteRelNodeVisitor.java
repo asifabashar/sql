@@ -1939,11 +1939,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
         // Handle row=true option: add a new field that sums all specified fields for each row
         List<Field> fieldsToAggregate = node.getFieldList();
-        return buildAddRowTotalAggregate(  context, fieldsToAggregate,  true, false, null, labelField, label);
+        return buildAddRowTotalAggregate(  context, fieldsToAggregate,  false, true, null, labelField, label);
 
     }
 
-    public RelNode buildAddRowTotalAggregate(CalcitePlanContext context, List<Field> fieldsToAggregate, boolean addColumnTotals, boolean appendTotalsRow, String newColTotalsFieldName, String labelField, String label) {
+    public RelNode buildAddRowTotalAggregate(CalcitePlanContext context, List<Field> fieldsToAggregate, boolean addTotalsForEachRow, boolean addTotalsForEachColumn, String newColTotalsFieldName, String labelField, String label) {
 
         // Build aggregation calls for totals calculation
         boolean fieldNamesChanged = false;
@@ -1965,12 +1965,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 RexNode fieldRef = context.relBuilder.field(fieldName);
                 if (isNumericField(fieldRef, context)) {
                     fieldsToSum.add(fieldRef);
-                    if (appendTotalsRow){
+                    if (addTotalsForEachColumn){
                         AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldName);
                         aggCalls.add(sumCall);
                     }
                     fieldNameToSum.add(fieldName);
-                    if (addColumnTotals) {
+                    if (addTotalsForEachRow) {
                         if (sumExpression == null) {
                             sumExpression = fieldRef;
                         } else {
@@ -1985,18 +1985,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     }
                 }
             }
-            if (appendTotalsRow && fieldName.equals(labelField)) {
+            if (addTotalsForEachColumn && fieldName.equals(labelField)) {
                 // Use specified label field for the label
                 foundLableField = true;
             }
         }
-        if (addColumnTotals && !fieldsToSum.isEmpty()) {
+        if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
             // Add the new column with the sum
             context.relBuilder.projectPlus(context.relBuilder.alias(sumExpression, newColTotalsFieldName)
             );
             fieldNamesChanged = true;
         }
-        if (appendTotalsRow) {
+        if (addTotalsForEachColumn) {
             if (!foundLableField && ( labelField!= null)) {
                 context.relBuilder.projectPlus(context.relBuilder.alias(context.relBuilder.literal(null), labelField));
                 fieldNamesChanged = true;
@@ -2007,7 +2007,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         if (fieldNamesChanged) {
             fieldNames = getFieldNamesFromRelNode(originalData);
         }
-        if (appendTotalsRow) {
+        if (addTotalsForEachColumn) {
             // Perform aggregation (no group by - single totals row)
             context.relBuilder.aggregate(
                     context.relBuilder.groupKey(), // Empty group key for single totals row

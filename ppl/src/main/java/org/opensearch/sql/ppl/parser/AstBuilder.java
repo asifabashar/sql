@@ -1276,20 +1276,43 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitAddtotalsCommand(OpenSearchPPLParser.AddtotalsCommandContext ctx) {
+
+
+
     List<Field> fieldList = new ArrayList<>();
-    java.util.Map<String, Literal> options = new LinkedHashMap<>();
-
-    // Parse addtotals options
-    for (OpenSearchPPLParser.AddtotalsOptionContext option : ctx.addtotalsOption()) {
-      if (option.FIELDLIST() != null) {
-        fieldList = getFieldList(option.fieldList());
-      } else if (option.LABEL() != null) {
-        options.put("label", (Literal) internalVisitExpression(option.stringLiteral()));
-      } else if (option.LABELFIELD() != null) {
-        options.put("labelfield", AstDSL.stringLiteral(option.qualifiedName().getText()));
-      }
+    if (ctx.fieldList() != null) {
+        fieldList = getFieldList(ctx.fieldList());
     }
-
+      ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+      ctx.addtotalsOption()
+              .forEach(
+                      option -> {
+                          String argName = option.children.get(0).toString();
+                          Literal value = (Literal) internalVisitExpression(option.children.get(2));
+                          cmdOptionsBuilder.put(argName, value);
+                      });
+      java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
     return new AddTotals(fieldList, options);
   }
+    @Override
+    public UnresolvedPlan visitAddcoltotalsCommand(OpenSearchPPLParser.AddcoltotalsCommandContext ctx) {
+
+
+
+        List<Field> fieldList = new ArrayList<>();
+        if (ctx.fieldList() != null) {
+            fieldList = getFieldList(ctx.fieldList());
+        }
+        ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+        ctx.addcoltotalsOption()
+                .forEach(
+                        option -> {
+                            String argName = option.children.get(0).toString();
+                            Literal value = (Literal) internalVisitExpression(option.children.get(2));
+                            cmdOptionsBuilder.put(argName, value);
+                        });
+        java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
+        return new AddColTotals(fieldList, options);
+    }
+
 }

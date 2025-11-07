@@ -8,6 +8,8 @@ package org.opensearch.sql.ast.tree;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @Getter
 @Setter
@@ -26,6 +29,8 @@ public class AddTotals extends UnresolvedPlan {
   private final List<Field> fieldList;
   private final Map<String, Literal> options;
   private UnresolvedPlan child;
+
+
 
   @Override
   public AddTotals attach(UnresolvedPlan child) {
