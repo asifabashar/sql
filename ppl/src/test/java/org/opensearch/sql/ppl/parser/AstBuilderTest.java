@@ -1267,6 +1267,4 @@ public class AstBuilderTest {
     // Test multiple pattern/replacement pairs
     plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
   }
-
-
 }
