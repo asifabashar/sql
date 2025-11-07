@@ -98,8 +98,8 @@ import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -2377,125 +2377,126 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return sb.toString();
   }
 
+  /** Transforms visitAddTotals command into SQL-based operations. */
+  @Override
+  public RelNode visitAddColTotals(AddColTotals node, CalcitePlanContext context) {
+    visitChildren(node, context);
 
-    /** Transforms visitAddTotals command into SQL-based operations. */
-    @Override
-    public RelNode visitAddColTotals(AddColTotals node, CalcitePlanContext context) {
-        visitChildren(node, context);
+    // Parse options from the AddTotals node
+    Map<String, Literal> options = node.getOptions();
+    String label = getOptionValue(options, "label", "Total");
+    String labelField = getOptionValue(options, "labelfield", null);
+    // Determine which fields to aggregate
 
-        // Parse options from the AddTotals node
-        Map<String, Literal> options = node.getOptions();
-        String label = getOptionValue(options, "label", "Total");
-        String labelField = getOptionValue(options, "labelfield", null);
-        // Determine which fields to aggregate
+    // Handle row=true option: add a new field that sums all specified fields for each row
+    List<Field> fieldsToAggregate = node.getFieldList();
+    return buildAddRowTotalAggregate(
+        context, fieldsToAggregate, false, true, null, labelField, label);
+  }
 
-        // Handle row=true option: add a new field that sums all specified fields for each row
-        List<Field> fieldsToAggregate = node.getFieldList();
-        return buildAddRowTotalAggregate(  context, fieldsToAggregate,  false, true, null, labelField, label);
+  public RelNode buildAddRowTotalAggregate(
+      CalcitePlanContext context,
+      List<Field> fieldsToAggregate,
+      boolean addTotalsForEachRow,
+      boolean addTotalsForEachColumn,
+      String newColTotalsFieldName,
+      String labelField,
+      String label) {
 
+    // Build aggregation calls for totals calculation
+    boolean fieldNamesChanged = false;
+    RexNode sumExpression = null;
+    List<AggCall> aggCalls = new ArrayList<>();
+    List<String> fieldNameToSum = new ArrayList<>();
+    RelNode originalData = context.relBuilder.peek();
+    List<String> fieldNames = getFieldNamesFromRelNode(originalData);
+    boolean foundLableField = false;
+    // If no specific fields specified, use all numeric fields
+    if (fieldsToAggregate.isEmpty()) {
+      fieldsToAggregate = getAllNumericFields(originalData, context);
     }
 
-    public RelNode buildAddRowTotalAggregate(CalcitePlanContext context, List<Field> fieldsToAggregate, boolean addTotalsForEachRow, boolean addTotalsForEachColumn, String newColTotalsFieldName, String labelField, String label) {
-
-        // Build aggregation calls for totals calculation
-        boolean fieldNamesChanged = false;
-        RexNode sumExpression = null;
-        List<AggCall> aggCalls = new ArrayList<>();
-        List<String> fieldNameToSum = new ArrayList<>();
-        RelNode originalData = context.relBuilder.peek();
-        List<String> fieldNames = getFieldNamesFromRelNode(originalData);
-        boolean foundLableField = false;
-        // If no specific fields specified, use all numeric fields
-        if (fieldsToAggregate.isEmpty()) {
-            fieldsToAggregate = getAllNumericFields(originalData, context);
-        }
-
-
-        List<RexNode> fieldsToSum = new ArrayList<>();
-        for (String fieldName : fieldNames) {
-            if (shouldAggregateField(fieldName, fieldsToAggregate)) {
-                RexNode fieldRef = context.relBuilder.field(fieldName);
-                if (isNumericField(fieldRef, context)) {
-                    fieldsToSum.add(fieldRef);
-                    if (addTotalsForEachColumn){
-                        AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldName);
-                        aggCalls.add(sumCall);
-                    }
-                    fieldNameToSum.add(fieldName);
-                    if (addTotalsForEachRow) {
-                        if (sumExpression == null) {
-                            sumExpression = fieldRef;
-                        } else {
-                            sumExpression = context.relBuilder.call(
-                                    org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS,
-                                    sumExpression,
-                                    fieldRef
-                            );
-                        }
-
-
-                    }
-                }
+    List<RexNode> fieldsToSum = new ArrayList<>();
+    for (String fieldName : fieldNames) {
+      if (shouldAggregateField(fieldName, fieldsToAggregate)) {
+        RexNode fieldRef = context.relBuilder.field(fieldName);
+        if (isNumericField(fieldRef, context)) {
+          fieldsToSum.add(fieldRef);
+          if (addTotalsForEachColumn) {
+            AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldName);
+            aggCalls.add(sumCall);
+          }
+          fieldNameToSum.add(fieldName);
+          if (addTotalsForEachRow) {
+            if (sumExpression == null) {
+              sumExpression = fieldRef;
+            } else {
+              sumExpression =
+                  context.relBuilder.call(
+                      org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS, sumExpression, fieldRef);
             }
-            if (addTotalsForEachColumn && fieldName.equals(labelField)) {
-                // Use specified label field for the label
-                foundLableField = true;
-            }
+          }
         }
-        if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
-            // Add the new column with the sum
-            context.relBuilder.projectPlus(context.relBuilder.alias(sumExpression, newColTotalsFieldName)
-            );
-            fieldNamesChanged = true;
-        }
-        if (addTotalsForEachColumn) {
-            if (!foundLableField && ( labelField!= null)) {
-                context.relBuilder.projectPlus(context.relBuilder.alias(context.relBuilder.literal(null), labelField));
-                fieldNamesChanged = true;
-            }
-        }
-        originalData = context.relBuilder.build();
-        context.relBuilder.push(originalData);
-        if (fieldNamesChanged) {
-            fieldNames = getFieldNamesFromRelNode(originalData);
-        }
-        if (addTotalsForEachColumn) {
-            // Perform aggregation (no group by - single totals row)
-            context.relBuilder.aggregate(
-                    context.relBuilder.groupKey(), // Empty group key for single totals row
-                    aggCalls);
-            // 3. Build the totals row with proper field order and labels
-            List<RexNode> selectList = new ArrayList<>();
-            int aggIndex = 0;
-
-            for (String fieldName : fieldNames) {
-
-
-                if (fieldNameToSum.contains(fieldName)) {
-                    selectList.add(context.relBuilder.alias(context.relBuilder.field(aggIndex++), fieldName));
-
-                } else if (fieldName.equals(labelField)) {
-                    // Use specified label field for the label
-                    selectList.add(context.relBuilder.alias(context.relBuilder.literal(label), fieldName));
-
-                } else {
-                    // Other fields get NULL in totals row
-                    selectList.add(context.relBuilder.alias(context.relBuilder.literal(null), fieldName));
-                }
-            }
-
-            // Project the totals row with proper field order and labels
-            context.relBuilder.project(selectList);
-            RelNode totalsRow = context.relBuilder.build();
-            // 4. Union original data with totals row
-            context.relBuilder.push(originalData);
-            context.relBuilder.push(totalsRow);
-            context.relBuilder.union(true); // Use UNION ALL to preserve order
-        }
-        return context.relBuilder.peek();
+      }
+      if (addTotalsForEachColumn && fieldName.equals(labelField)) {
+        // Use specified label field for the label
+        foundLableField = true;
+      }
     }
+    if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
+      // Add the new column with the sum
+      context.relBuilder.projectPlus(
+          context.relBuilder.alias(sumExpression, newColTotalsFieldName));
+      fieldNamesChanged = true;
+    }
+    if (addTotalsForEachColumn) {
+      if (!foundLableField && (labelField != null)) {
+        context.relBuilder.projectPlus(
+            context.relBuilder.alias(context.relBuilder.literal(null), labelField));
+        fieldNamesChanged = true;
+      }
+    }
+    originalData = context.relBuilder.build();
+    context.relBuilder.push(originalData);
+    if (fieldNamesChanged) {
+      fieldNames = getFieldNamesFromRelNode(originalData);
+    }
+    if (addTotalsForEachColumn) {
+      // Perform aggregation (no group by - single totals row)
+      context.relBuilder.aggregate(
+          context.relBuilder.groupKey(), // Empty group key for single totals row
+          aggCalls);
+      // 3. Build the totals row with proper field order and labels
+      List<RexNode> selectList = new ArrayList<>();
+      int aggIndex = 0;
 
-        /** Transforms visitAddTotals command into SQL-based operations. */
+      for (String fieldName : fieldNames) {
+
+        if (fieldNameToSum.contains(fieldName)) {
+          selectList.add(context.relBuilder.alias(context.relBuilder.field(aggIndex++), fieldName));
+
+        } else if (fieldName.equals(labelField)) {
+          // Use specified label field for the label
+          selectList.add(context.relBuilder.alias(context.relBuilder.literal(label), fieldName));
+
+        } else {
+          // Other fields get NULL in totals row
+          selectList.add(context.relBuilder.alias(context.relBuilder.literal(null), fieldName));
+        }
+      }
+
+      // Project the totals row with proper field order and labels
+      context.relBuilder.project(selectList);
+      RelNode totalsRow = context.relBuilder.build();
+      // 4. Union original data with totals row
+      context.relBuilder.push(originalData);
+      context.relBuilder.push(totalsRow);
+      context.relBuilder.union(true); // Use UNION ALL to preserve order
+    }
+    return context.relBuilder.peek();
+  }
+
+  /** Transforms visitAddTotals command into SQL-based operations. */
   @Override
   public RelNode visitAddTotals(AddTotals node, CalcitePlanContext context) {
     // 1. Process child plan first
@@ -2503,17 +2504,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Parse options from the AddTotals node
     Map<String, Literal> options = node.getOptions();
-    String label = getOptionValue(options, "label", "Total"); // when col=true , add summary event with this label
-    String labelField = getOptionValue(options, "labelfield", null); // when col=true , add summary event with this label field at the end of rows
-    String newColTotalsFieldName = getOptionValue(options, "fieldname", "Total"); // when row=true , add new field as new column
+    String label =
+        getOptionValue(
+            options, "label", "Total"); // when col=true , add summary event with this label
+    String labelField =
+        getOptionValue(
+            options,
+            "labelfield",
+            null); // when col=true , add summary event with this label field at the end of rows
+    String newColTotalsFieldName =
+        getOptionValue(
+            options, "fieldname", "Total"); // when row=true , add new field as new column
     boolean addTotalsForEachRow = getBooleanOptionValue(options, "row", true);
-    boolean addTotalsForEachColumn = getBooleanOptionValue(options, "col", false); // when col=true/false check
+    boolean addTotalsForEachColumn =
+        getBooleanOptionValue(options, "col", false); // when col=true/false check
 
     // Determine which fields to aggregate
     List<Field> fieldsToAggregate = node.getFieldList();
 
     // Handle row=true option: add a new field that sums all specified fields for each row
-    return  buildAddRowTotalAggregate( context, fieldsToAggregate,   addTotalsForEachRow, addTotalsForEachColumn, newColTotalsFieldName, labelField, label);
+    return buildAddRowTotalAggregate(
+        context,
+        fieldsToAggregate,
+        addTotalsForEachRow,
+        addTotalsForEachColumn,
+        newColTotalsFieldName,
+        labelField,
+        label);
   }
 
   /** Helper method to extract option values from the options map */

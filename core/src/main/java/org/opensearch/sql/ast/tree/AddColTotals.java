@@ -6,13 +6,12 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Map;
 import lombok.*;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
-
-import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter

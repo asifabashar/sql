@@ -57,8 +57,8 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -524,12 +524,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
-      throw getOnlyForCalciteException("addotals");
+    throw getOnlyForCalciteException("addtotals");
   }
-    @Override
-    public LogicalPlan visitAddColTotals(AddColTotals node, AnalysisContext context) {
-        throw getOnlyForCalciteException("adcoltotals");
-    }
+
+  @Override
+  public LogicalPlan visitAddColTotals(AddColTotals node, AnalysisContext context) {
+    throw getOnlyForCalciteException("addcoltotals");
+  }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
   @Override
