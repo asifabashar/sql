@@ -2625,13 +2625,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Check if a field name represents a numeric field in the RelNode */
   private boolean isNumericFieldName(String fieldName, RelNode relNode) {
-      try {
-          RelDataTypeField field = relNode.getRowType().getField(fieldName, false, false);
-          return field != null && field.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
-      } catch (Exception e) {
-          return false;
-      }
+    try {
+      RelDataTypeField field = relNode.getRowType().getField(fieldName, false, false);
+      return field != null && field.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+    } catch (Exception e) {
+      return false;
+    }
   }
+
   @Override
   public RelNode visitChart(Chart node, CalcitePlanContext context) {
     visitChildren(node, context);
