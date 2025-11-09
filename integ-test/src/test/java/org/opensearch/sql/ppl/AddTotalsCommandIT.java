@@ -23,6 +23,10 @@ public class AddTotalsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
   }
 
+    /**
+     * default test without parameters
+     * @throws IOException
+     */
   @Test
   public void testAddTotalsTotalWithTotalField() throws IOException {
     var result =

@@ -32,17 +32,16 @@ public class AddColTotalsCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
 
     // Verify that we get original rows plus totals row
-    verifySchema(
-        result, schema("age", "bigint"), schema("balance", "bigint"));
+    verifySchema(result, schema("age", "bigint"), schema("balance", "bigint"));
 
     // Should have original data plus one totals row
     var dataRows = result.getJSONArray("datarows");
     // Iterate through all data rows
-      ArrayList<Integer> field_indexes = new ArrayList<>();
-      field_indexes.add(0);
-      field_indexes.add(1);
+    ArrayList<Integer> field_indexes = new ArrayList<>();
+    field_indexes.add(0);
+    field_indexes.add(1);
 
-      verifyColTotals(dataRows, field_indexes, null);
+    verifyColTotals(dataRows, field_indexes, null);
   }
 
   @Test
