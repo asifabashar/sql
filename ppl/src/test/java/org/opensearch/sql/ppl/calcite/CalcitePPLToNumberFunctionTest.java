@@ -49,6 +49,86 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+
+    @Test
+    public void testNumberHexMinLimit() {
+        String ppl =
+                "source=EMP | eval long_value = tonumber('-7FFFFFFFFFFFFFFF',16) | fields long_value|head"
+                        + " 1";
+        RelNode root = getRelNode(ppl);
+        String expectedLogical =
+                "LogicalSort(fetch=[1])\n"
+                        + "  LogicalProject(long_value=[TONUMBER('-7FFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
+                        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        verifyLogical(root, expectedLogical);
+        String expectedResult = "long_value=-9.223372036854776E18\n";
+        verifyResult(root, expectedResult);
+
+        String expectedSparkSql =
+                "SELECT `TONUMBER`('-7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+
+        verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
+
+  @Test
+  public void testNumberHexMaxLimit() {
+    String ppl =
+        "source=EMP | eval long_value = tonumber('7FFFFFFFFFFFFFFF',16) | fields long_value|head"
+            + " 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(long_value=[TONUMBER('7FFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "long_value=9.223372036854776E18\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `TONUMBER`('7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNumberHexOverNegativeMaxLimit() {
+    String ppl =
+        "source=EMP | eval long_value = tonumber('-FFFFFFFFFFFFFFFF',16) | fields long_value|head"
+            + " 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(long_value=[TONUMBER('-FFFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "long_value=1.0\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `TONUMBER`('-FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNumberHexOverPositiveMaxLimit() {
+    String ppl =
+        "source=EMP | eval long_value = tonumber('FFFFFFFFFFFFFFFF',16) | fields long_value|head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(long_value=[TONUMBER('FFFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "long_value=-1.0\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `TONUMBER`('FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
   @Test
   public void testNumber() {
     String ppl = "source=EMP | eval int_value = tonumber('4598') | fields int_value|head 1";
