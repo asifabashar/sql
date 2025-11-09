@@ -2513,7 +2513,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           fieldList = originalData.getRowType().getFieldList();
           for (RelDataTypeField fieldDataType : fieldList) {
               if (fieldNameToSum.contains(fieldDataType.getName())) {
-                  selectList.add(context.relBuilder.alias(context.relBuilder.field(fieldDataType.getName()), fieldDataType.getName())); //.field(aggIndex++)
+                  selectList.add(context.relBuilder.alias(context.relBuilder.field(fieldDataType.getName()), fieldDataType.getName()));
 
               } else if (fieldDataType.getName().equals(labelField) && (extraColTotalField || fieldDataType.getType().getFamily() == SqlTypeFamily.CHARACTER  )) {
                   // Use specified label field for the label - cast to match original field type

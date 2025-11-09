@@ -16,8 +16,26 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
-  @Test
-  public void testAddTotals() throws IOException {
+
+    @Test
+    public void testAddColTotals() throws IOException {
+        String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals ";
+        RelNode root = getRelNode(ppl);
+        String expectedLogical =  "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n      LogicalProject(DEPTNO=[$7], SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
+        verifyLogical(root, expectedLogical);
+        String expectedResult =  "DEPTNO=20; SAL=800.00; JOB=CLERK\nDEPTNO=30; SAL=1600.00; JOB=SALESMAN\nDEPTNO=30; SAL=1250.00; JOB=SALESMAN\nDEPTNO=20; SAL=2975.00; JOB=MANAGER\nDEPTNO=30; SAL=1250.00; JOB=SALESMAN\nDEPTNO=30; SAL=2850.00; JOB=MANAGER\nDEPTNO=10; SAL=2450.00; JOB=MANAGER\nDEPTNO=20; SAL=3000.00; JOB=ANALYST\nDEPTNO=10; SAL=5000.00; JOB=PRESIDENT\nDEPTNO=30; SAL=1500.00; JOB=SALESMAN\nDEPTNO=20; SAL=1100.00; JOB=CLERK\nDEPTNO=30; SAL=950.00; JOB=CLERK\nDEPTNO=20; SAL=3000.00; JOB=ANALYST\nDEPTNO=10; SAL=1300.00; JOB=CLERK\nDEPTNO=310; SAL=29025.00; JOB=null\n";
+
+
+        verifyResult(root, expectedResult);
+
+        String expectedSparkSql =  "SELECT `DEPTNO`, `SAL`, `JOB`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`\nFROM `scott`.`EMP`";
+
+
+        verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
+
+    @Test
+  public void testAddColTotalsFieldSpecified() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL ";
     RelNode root = getRelNode(ppl);
     String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n      LogicalProject(SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -47,7 +65,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testAddTotalsAllFields() throws IOException {
+  public void testAddColTotalsAllFields() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals  ";
     RelNode root = getRelNode(ppl);
     String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n      LogicalProject(DEPTNO=[$7], SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -76,7 +94,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testAddTotalsMultiFields() throws IOException {
+  public void testAddColTotalsMultiFields() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals DEPTNO SAL ";
     RelNode root = getRelNode(ppl);
     String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n      LogicalProject(DEPTNO=[$7], SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
@@ -105,7 +123,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testAddTotalsWithAllOptions() throws IOException {
+  public void testAddColTotalsWithAllOptions() throws IOException {
     String ppl =
         "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL label='GrandTotal'"
             + " labelfield='all_emp_total' ";
@@ -136,7 +154,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testAddTotalsMatchingLabelFieldWithExisting() throws IOException {
+  public void testAddColTotalsMatchingLabelFieldWithExisting() throws IOException {
     String ppl =
         "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL label='GrandTotal'"
             + " labelfield='JOB' ";

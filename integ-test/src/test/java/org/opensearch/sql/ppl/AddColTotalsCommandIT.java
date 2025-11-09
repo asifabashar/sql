@@ -33,29 +33,16 @@ public class AddColTotalsCommandIT extends PPLIntegTestCase {
 
     // Verify that we get original rows plus totals row
     verifySchema(
-        result, schema("age", "bigint"), schema("balance", "bigint"), schema("Total", "bigint"));
+        result, schema("age", "bigint"), schema("balance", "bigint"));
 
     // Should have original data plus one totals row
     var dataRows = result.getJSONArray("datarows");
     // Iterate through all data rows
-    for (int i = 0; i < dataRows.length(); i++) {
-      var row = dataRows.getJSONArray(i);
+      ArrayList<Integer> field_indexes = new ArrayList<>();
+      field_indexes.add(0);
+      field_indexes.add(1);
 
-      BigDecimal cRowTotal = new BigDecimal(0);
-      // Iterate through each field in the row
-      for (int j = 0; j < row.length() - 1; j++) {
-        Object value = row.isNull(j) ? 0 : row.get(j);
-        if (value instanceof Integer) {
-          cRowTotal = cRowTotal.add(new BigDecimal((Integer) (value)));
-        } else if (value instanceof Double) {
-          cRowTotal = cRowTotal.add(new BigDecimal((Double) (value)));
-        } else if (value instanceof String) {
-          cRowTotal = cRowTotal.add(new BigDecimal((String) (value)));
-        }
-      }
-      BigDecimal foundTotal = row.getBigDecimal(row.length() - 1);
-      assertEquals(foundTotal.doubleValue(), cRowTotal.doubleValue(), 0.000001);
-    }
+      verifyColTotals(dataRows, field_indexes, null);
   }
 
   @Test
