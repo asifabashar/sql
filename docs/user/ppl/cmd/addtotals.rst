@@ -23,7 +23,7 @@ Syntax
 * ``row=<boolean>``: Optional. Calculates total of each row and add a new field with the total. Default is true.
 * ``col=<boolean>``: Optional. Calculates total of each column and add a new event at the end of all events with the total. Default is false.
 * ``labelfield=<field>``: Optional. Field name to place the label. If it  specifies a non-existing field, adds the field and shows label at the summary event row at this field. This is applicable when col=true.
-* ``label=<string>``: Optional. Custom text for the totals row labelfield's label. Default is "Total".  This is applicable when col=true.
+* ``label=<string>``: Optional. Custom text for the totals row labelfield's label. Default is "Total".  This is applicable when col=true. This does not have any effect when labelfield  and fieldname parameter both have same value.
 * ``fieldname=<field>``: Optional. Calculates total of each row and add a new field to store this total. This is applicable when row=true.
 
 
@@ -34,16 +34,16 @@ The example shows placing the label in an existing field.
 
 PPL query::
 
-    os> source=accounts | fields firstname, balance | head 3 | addtotals col=true labelfield=firstname;
+    os> source=accounts | head 3|fields firstname, balance | addtotals col=true labelfield='firstname' label='Total';
     fetched rows / total rows = 4/4
-    +-----------+---------+
-    | firstname | balance |
-    +-----------+---------+
-    | Amber     | 39225   |
-    | Hattie    | 5686    |
-    | Nanette   | 32838   |
-    | Total     | 77749   |
-    +-----------+---------+
+    +-----------+---------+-------+
+    | firstname | balance | Total |
+    |-----------+---------+-------|
+    | Amber     | 39225   | 39225 |
+    | Hattie    | 5686    | 5686  |
+    | Nanette   | 32838   | 32838 |
+    | Total     | 77749   | null  |
+    +-----------+---------+-------+
 
 Example 2: Adding column totals and adding a summary event with label specified.
 =================================================================================
@@ -54,15 +54,37 @@ specified by labelfield as it did not match existing field.
 
 PPL query::
 
-    os> source=accounts | stats count() by gender | addtotals `count()` col=true label='Sum' labelfield='Total';
-    fetched rows / total rows = 3/3
-    +----------+--------+-------+
-    | count()  | gender | Total |
-    +----------+--------+-------+
-    | 493      | M      | null  |
-    | 507      | F      | null  |
-    | 1000     | null   | Sum   |
-    +----------+--------+-------+
+    os> source=accounts  | addtotals col=true  row=false label='Sum' labelfield='Total';
+    fetched rows / total rows = 5/5
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | Total |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------|
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | null  |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | null  |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | null  |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | null  |
+    | 38             | null      | null                 | 81929   | null   | null   | null     | null  | 129 | null                  | null     | Sum   |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------+
+
+
+
+if row=true, there will be conflict between column added for column totals and column added for row totals being same field 'Total', in that case the output will have final event row label null instead of 'Sum' because the column is number type and it cannot output String in number type column.
+PPL query::
+
+    os> source=accounts  | addtotals col=true  row=true label='Sum' labelfield='Total';
+    fetched rows / total rows = 5/5
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | Total   |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------|
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 39258.0 |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 5728.0  |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 32879.0 |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 4231.0  |
+    | 38             | null      | null                 | 81929   | null   | null   | null     | null  | 129 | null                  | null     | null    |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+---------+
+
+
+
 
 Example 3: With all options
 ============================
@@ -71,16 +93,17 @@ The example shows using addtotals with all options set.
 
 PPL query::
 
-    os> source=accounts | where age > 30 | stats avg(balance) as avg_balance, count() as count by state | head 3 | addtotals avg_balance, count row=true col=true fieldname="Row Total" label='Sum' labelfield='Column Total';
+    os> source=accounts | where age > 30 | stats avg(balance) as avg_balance, count() as count by state | head 3 | addtotals avg_balance, count row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total';
     fetched rows / total rows = 4/4
-    +-------------+-------+-------+-----------+--------------|
+    +-------------+-------+-------+-----------+--------------+
     | avg_balance | count | state | Row Total | Column Total |
-    +-------------+-------+-------+-----------+--------------|
-    | 25652.2     | 5     | AL    | 25657.2   | null         |
-    | 32460.4     | 10    | AK    | 32470.4   | null         |
-    | 29841.6     | 8     | AZ    | 29849.6   | null         |
-    | 87954.2     | 23    | null  | 87977.2   | Sum          |
-    +-------------+-------+-------+-----------+--------------|
+    |-------------+-------+-------+-----------+--------------|
+    | 39225.0     | 1     | IL    | 39226.0   | null         |
+    | 4180.0      | 1     | MD    | 4181.0    | null         |
+    | 5686.0      | 1     | TN    | 5687.0    | null         |
+    | 49091.0     | 3     | null  | null      | Sum          |
+    +-------------+-------+-------+-----------+--------------+
+
 
 
 

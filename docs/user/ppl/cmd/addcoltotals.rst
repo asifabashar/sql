@@ -31,16 +31,17 @@ The example shows placing the label in an existing field.
 
 PPL query::
 
-    os> source=accounts | fields firstname, balance | head 3 | addcoltotals labelfield=firstname;
+    os> source=accounts | fields firstname, balance | head 3 | addcoltotals labelfield='firstname';
     fetched rows / total rows = 4/4
     +-----------+---------+
     | firstname | balance |
-    +-----------+---------+
+    |-----------+---------|
     | Amber     | 39225   |
     | Hattie    | 5686    |
     | Nanette   | 32838   |
     | Total     | 77749   |
     +-----------+---------+
+
 
 Example 2: Adding column totals and adding a summary event with label specified.
 =================================================================================
@@ -53,13 +54,13 @@ PPL query::
 
     os> source=accounts | stats count() by gender | addcoltotals `count()` label='Sum' labelfield='Total';
     fetched rows / total rows = 3/3
-    +----------+--------+-------+
-    | count()  | gender | Total |
-    +----------+--------+-------+
-    | 493      | M      | null  |
-    | 507      | F      | null  |
-    | 1000     | null   | Sum   |
-    +----------+--------+-------+
+    +---------+--------+-------+
+    | count() | gender | Total |
+    |---------+--------+-------|
+    | 1       | F      | null  |
+    | 3       | M      | null  |
+    | 4       | null   | Sum   |
+    +---------+--------+-------+
 
 Example 3: With all options
 ============================
@@ -70,14 +71,15 @@ PPL query::
 
     os> source=accounts | where age > 30 | stats avg(balance) as avg_balance, count() as count by state | head 3 | addcoltotals avg_balance, count  label='Sum' labelfield='Column Total';
     fetched rows / total rows = 4/4
-    +-------------+-------+-------+--------------|
+    +-------------+-------+-------+--------------+
     | avg_balance | count | state | Column Total |
-    +-------------+-------+-------+--------------|
-    | 25652.2     | 5     | AL    | null         |
-    | 32460.4     | 10    | AK    | null         |
-    | 29841.6     | 8     | AZ    | null         |
-    | 87954.2     | 23    | null  | Sum          |
-    +-------------+-------+-------+--------------|
+    |-------------+-------+-------+--------------|
+    | 39225.0     | 1     | IL    | null         |
+    | 4180.0      | 1     | MD    | null         |
+    | 5686.0      | 1     | TN    | null         |
+    | 49091.0     | 3     | null  | Sum          |
+    +-------------+-------+-------+--------------+
+
 
 
 
