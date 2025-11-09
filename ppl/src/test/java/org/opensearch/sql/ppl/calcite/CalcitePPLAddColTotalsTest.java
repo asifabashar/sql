@@ -20,14 +20,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   public void testAddTotals() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL ";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:NULL], SAL=[$0], JOB=[null:NULL])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n      LogicalProject(SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
@@ -48,12 +41,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
 
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT NULL `DEPTNO`, SUM(`SAL`) `SAL`, NULL `JOB`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql ="SELECT `DEPTNO`, `SAL`, `JOB`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`\nFROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -62,14 +50,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   public void testAddTotalsAllFields() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals  ";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:NULL])\n"
-            + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n      LogicalProject(DEPTNO=[$7], SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
@@ -90,12 +71,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
 
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, NULL `JOB`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT `DEPTNO`, `SAL`, `JOB`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -103,14 +79,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
   public void testAddTotalsMultiFields() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals DEPTNO SAL ";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:NULL])\n"
-            + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=[null:VARCHAR(9)])\n    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n      LogicalProject(DEPTNO=[$7], SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
@@ -131,13 +100,8 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
 
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, NULL `JOB`\n"
-            + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
+    String expectedSparkSql = "SELECT `DEPTNO`, `SAL`, `JOB`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`\nFROM `scott`.`EMP`";
+      verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -146,15 +110,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
         "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL label='GrandTotal'"
             + " labelfield='all_emp_total' ";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], all_emp_total=[null:NULL])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:NULL], SAL=[$0], JOB=[null:NULL],"
-            + " all_emp_total=['GrandTotal'])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =  "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], all_emp_total=[null:VARCHAR(13)])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=[null:VARCHAR(9)], all_emp_total=['GrandTotal':VARCHAR(13)])\n    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n      LogicalProject(SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "DEPTNO=20; SAL=800.00; JOB=CLERK; all_emp_total=null\n"
@@ -174,12 +130,7 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
             + "DEPTNO=null; SAL=29025.00; JOB=null; all_emp_total=GrandTotal\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, NULL `all_emp_total`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT NULL `DEPTNO`, SUM(`SAL`) `SAL`, NULL `JOB`, 'GrandTotal' `all_emp_total`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT `DEPTNO`, `SAL`, `JOB`, CAST(NULL AS STRING) `all_emp_total`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, CAST(NULL AS STRING) `JOB`, 'GrandTotal' `all_emp_total`\nFROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -190,39 +141,12 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
         "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals SAL label='GrandTotal'"
             + " labelfield='JOB' ";
     RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:NULL], SAL=[$0], JOB=['GrandTotal'])\n"
-            + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
-            + "      LogicalProject(SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =  "LogicalUnion(all=[true])\n  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n    LogicalTableScan(table=[[scott, EMP]])\n  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=['GrandTota':VARCHAR(9)])\n    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n      LogicalProject(SAL=[$5])\n        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult =
-        "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
-            + "DEPTNO=30; SAL=1600.00; JOB=SALESMAN\n"
-            + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN\n"
-            + "DEPTNO=20; SAL=2975.00; JOB=MANAGER\n"
-            + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN\n"
-            + "DEPTNO=30; SAL=2850.00; JOB=MANAGER\n"
-            + "DEPTNO=10; SAL=2450.00; JOB=MANAGER\n"
-            + "DEPTNO=20; SAL=3000.00; JOB=ANALYST\n"
-            + "DEPTNO=10; SAL=5000.00; JOB=PRESIDENT\n"
-            + "DEPTNO=30; SAL=1500.00; JOB=SALESMAN\n"
-            + "DEPTNO=20; SAL=1100.00; JOB=CLERK\n"
-            + "DEPTNO=30; SAL=950.00; JOB=CLERK\n"
-            + "DEPTNO=20; SAL=3000.00; JOB=ANALYST\n"
-            + "DEPTNO=10; SAL=1300.00; JOB=CLERK\n"
-            + "DEPTNO=null; SAL=29025.00; JOB=GrandTotal\n";
+    String expectedResult = "DEPTNO=20; SAL=800.00; JOB=CLERK\nDEPTNO=30; SAL=1600.00; JOB=SALESMAN\nDEPTNO=30; SAL=1250.00; JOB=SALESMAN\nDEPTNO=20; SAL=2975.00; JOB=MANAGER\nDEPTNO=30; SAL=1250.00; JOB=SALESMAN\nDEPTNO=30; SAL=2850.00; JOB=MANAGER\nDEPTNO=10; SAL=2450.00; JOB=MANAGER\nDEPTNO=20; SAL=3000.00; JOB=ANALYST\nDEPTNO=10; SAL=5000.00; JOB=PRESIDENT\nDEPTNO=30; SAL=1500.00; JOB=SALESMAN\nDEPTNO=20; SAL=1100.00; JOB=CLERK\nDEPTNO=30; SAL=950.00; JOB=CLERK\nDEPTNO=20; SAL=3000.00; JOB=ANALYST\nDEPTNO=10; SAL=1300.00; JOB=CLERK\nDEPTNO=null; SAL=29025.00; JOB=GrandTota\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT NULL `DEPTNO`, SUM(`SAL`) `SAL`, 'GrandTotal' `JOB`\n"
-            + "FROM `scott`.`EMP`";
+    String expectedSparkSql =  "SELECT `DEPTNO`, `SAL`, `JOB`\nFROM `scott`.`EMP`\nUNION ALL\nSELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, 'GrandTota' `JOB`\nFROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

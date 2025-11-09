@@ -2440,96 +2440,101 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String label) {
 
     // Build aggregation calls for totals calculation
-    boolean fieldNamesChanged = false;
-    RexNode sumExpression = null;
-    List<AggCall> aggCalls = new ArrayList<>();
-    List<String> fieldNameToSum = new ArrayList<>();
-    RelNode originalData = context.relBuilder.peek();
-    List<String> fieldNames = getFieldNamesFromRelNode(originalData);
-    boolean foundLableField = false;
-    // If no specific fields specified, use all numeric fields
-    if (fieldsToAggregate.isEmpty()) {
-      fieldsToAggregate = getAllNumericFields(originalData, context);
-    }
+      boolean extraColTotalField = false;
+      RexNode sumExpression = null;
+      List<AggCall> aggCalls = new ArrayList<>();
+      List<String> fieldNameToSum = new ArrayList<>();
+      RelNode originalData = context.relBuilder.peek();
 
-    List<RexNode> fieldsToSum = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      if (shouldAggregateField(fieldName, fieldsToAggregate)) {
-        RexNode fieldRef = context.relBuilder.field(fieldName);
-        if (isNumericField(fieldRef, context)) {
-          fieldsToSum.add(fieldRef);
-          if (addTotalsForEachColumn) {
-            AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldName);
-            aggCalls.add(sumCall);
+      boolean foundLableField = false;
+      int labelLength = (labelField != null) && (labelField.length() > label.length()) ? labelField.length() : label.length();
+
+      RelDataType labelVarcharType = context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR, labelLength);
+
+      // If no specific fields specified, use all numeric fields
+      if (fieldsToAggregate.isEmpty()) {
+          fieldsToAggregate = getAllNumericFields(originalData, context);
+      }
+
+      List<RexNode> fieldsToSum = new ArrayList<>();
+      java.util.List<org.apache.calcite.rel.type.RelDataTypeField> fieldList = originalData.getRowType().getFieldList();
+      for (RelDataTypeField fieldDataType : fieldList) {
+          if (shouldAggregateField(fieldDataType.getName(), fieldsToAggregate)) {
+              RexNode fieldRef = context.relBuilder.field(fieldDataType.getName());
+              if (isNumericField(fieldRef, context)) {
+                  fieldsToSum.add(fieldRef);
+                  if (addTotalsForEachColumn) {
+                      AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldDataType.getName());
+                      aggCalls.add(sumCall);
+                  }
+                  fieldNameToSum.add(fieldDataType.getName());
+                  if (addTotalsForEachRow) {
+                      if (sumExpression == null) {
+                          sumExpression = fieldRef;
+                      } else {
+                          sumExpression =
+                                  context.relBuilder.call(
+                                          org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS, sumExpression, fieldRef);
+                      }
+                  }
+              }
           }
-          fieldNameToSum.add(fieldName);
-          if (addTotalsForEachRow) {
-            if (sumExpression == null) {
-              sumExpression = fieldRef;
-            } else {
-              sumExpression =
-                  context.relBuilder.call(
-                      org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS, sumExpression, fieldRef);
-            }
+          if (addTotalsForEachColumn && fieldDataType.getName().equals(labelField)) {
+              // Use specified label field for the label
+              foundLableField = true;
           }
-        }
       }
-      if (addTotalsForEachColumn && fieldName.equals(labelField)) {
-        // Use specified label field for the label
-        foundLableField = true;
+      if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
+          // Add the new column with the sum
+          context.relBuilder.projectPlus(
+                  context.relBuilder.alias(sumExpression, newColTotalsFieldName));
+          if (newColTotalsFieldName.equals(labelField)) {
+              foundLableField = true;
+          }
       }
-    }
-    if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
-      // Add the new column with the sum
-      context.relBuilder.projectPlus(
-          context.relBuilder.alias(sumExpression, newColTotalsFieldName));
-      fieldNamesChanged = true;
-    }
-    if (addTotalsForEachColumn) {
-      if (!foundLableField && (labelField != null)) {
-        context.relBuilder.projectPlus(
-            context.relBuilder.alias(context.relBuilder.literal(null), labelField));
-        fieldNamesChanged = true;
+      if (addTotalsForEachColumn) {
+          if (!foundLableField && (labelField != null)) {
+              context.relBuilder.projectPlus(
+                      context.relBuilder.alias(context.relBuilder.getRexBuilder().makeNullLiteral(labelVarcharType), labelField));
+              extraColTotalField=true;
+          }
       }
-    }
-    originalData = context.relBuilder.build();
-    context.relBuilder.push(originalData);
-    if (fieldNamesChanged) {
-      fieldNames = getFieldNamesFromRelNode(originalData);
-    }
-    if (addTotalsForEachColumn) {
-      // Perform aggregation (no group by - single totals row)
-      context.relBuilder.aggregate(
-          context.relBuilder.groupKey(), // Empty group key for single totals row
-          aggCalls);
-      // 3. Build the totals row with proper field order and labels
-      List<RexNode> selectList = new ArrayList<>();
-      int aggIndex = 0;
-
-      for (String fieldName : fieldNames) {
-
-        if (fieldNameToSum.contains(fieldName)) {
-          selectList.add(context.relBuilder.alias(context.relBuilder.field(aggIndex++), fieldName));
-
-        } else if (fieldName.equals(labelField)) {
-          // Use specified label field for the label
-          selectList.add(context.relBuilder.alias(context.relBuilder.literal(label), fieldName));
-
-        } else {
-          // Other fields get NULL in totals row
-          selectList.add(context.relBuilder.alias(context.relBuilder.literal(null), fieldName));
-        }
-      }
-
-      // Project the totals row with proper field order and labels
-      context.relBuilder.project(selectList);
-      RelNode totalsRow = context.relBuilder.build();
-      // 4. Union original data with totals row
+      originalData = context.relBuilder.build();
       context.relBuilder.push(originalData);
-      context.relBuilder.push(totalsRow);
-      context.relBuilder.union(true); // Use UNION ALL to preserve order
-    }
-    return context.relBuilder.peek();
+      if (addTotalsForEachColumn) {
+          // Perform aggregation (no group by - single totals row)
+          context.relBuilder.aggregate(
+                  context.relBuilder.groupKey(), // Empty group key for single totals row
+                  aggCalls);
+          // 3. Build the totals row with proper field order and labels
+          List<RexNode> selectList = new ArrayList<>();
+
+
+          fieldList = originalData.getRowType().getFieldList();
+          for (RelDataTypeField fieldDataType : fieldList) {
+              if (fieldNameToSum.contains(fieldDataType.getName())) {
+                  selectList.add(context.relBuilder.alias(context.relBuilder.field(fieldDataType.getName()), fieldDataType.getName())); //.field(aggIndex++)
+
+              } else if (fieldDataType.getName().equals(labelField) && (extraColTotalField || fieldDataType.getType().getFamily() == SqlTypeFamily.CHARACTER  )) {
+                  // Use specified label field for the label - cast to match original field type
+                  RexNode labelLiteral = context.relBuilder.getRexBuilder().makeLiteral(label, fieldDataType.getType(), true);
+                  selectList.add(context.relBuilder.alias(labelLiteral, fieldDataType.getName()));
+
+              } else {
+                  // Other fields get NULL in totals row - cast to match original field type
+                  selectList.add(context.relBuilder.alias(context.relBuilder.getRexBuilder().makeNullLiteral(fieldDataType.getType()), fieldDataType.getName()));
+              }
+          }
+
+          // Project the totals row with proper field order and labels
+          context.relBuilder.project(selectList);
+          RelNode totalsRow = context.relBuilder.build();
+          // 4. Union original data with totals row
+          context.relBuilder.push(originalData);
+          context.relBuilder.push(totalsRow);
+          context.relBuilder.union(true); // Use UNION ALL to preserve order
+      }
+      return context.relBuilder.peek();
   }
 
   /** Transforms visitAddTotals command into SQL-based operations. */
@@ -2592,10 +2597,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return defaultValue;
   }
 
-  /** Get field names from a RelNode */
-  private List<String> getFieldNamesFromRelNode(RelNode relNode) {
-    return relNode.getRowType().getFieldNames();
-  }
+
 
   /** Get all numeric fields from the RelNode */
   private List<Field> getAllNumericFields(RelNode relNode, CalcitePlanContext context) {
