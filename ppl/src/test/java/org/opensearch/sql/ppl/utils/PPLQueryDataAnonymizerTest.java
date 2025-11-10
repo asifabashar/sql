@@ -723,8 +723,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandWithWildcards() {
     assertEquals(
-        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
-        anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname"));
+        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[])",
+        anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname1"));
   }
 
   @Test
