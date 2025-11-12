@@ -11,10 +11,8 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.expression.IntervalUnit.MILLISECOND;
-import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.sum;
-import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampadd;
-import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampdiff;
-import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampadd;
+import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampdiff;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
@@ -34,48 +32,37 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 
-/** AST node represent Timechart operation. */
+/** AST node represent chart command. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 @lombok.Builder(toBuilder = true)
-public class Timechart extends UnresolvedPlan {
+public class Chart extends UnresolvedPlan {
+  public static final Literal DEFAULT_USE_OTHER = Literal.TRUE;
+  public static final Literal DEFAULT_OTHER_STR = AstDSL.stringLiteral("OTHER");
+  public static final Literal DEFAULT_LIMIT = AstDSL.intLiteral(10);
+  public static final Literal DEFAULT_USE_NULL = Literal.TRUE;
+  public static final Literal DEFAULT_NULL_STR = AstDSL.stringLiteral("NULL");
+  public static final Literal DEFAULT_TOP = Literal.TRUE;
+
   private UnresolvedPlan child;
-  private UnresolvedExpression binExpression;
-  private UnresolvedExpression aggregateFunction;
-  private UnresolvedExpression byField;
-  private Integer limit;
-  private Boolean useOther;
-
-  public Timechart(UnresolvedPlan child, UnresolvedExpression aggregateFunction) {
-    this(child, null, aggregateFunction, null, null, true);
-  }
-
-  public Timechart span(UnresolvedExpression binExpression) {
-    return toBuilder().binExpression(binExpression).build();
-  }
-
-  public Timechart by(UnresolvedExpression byField) {
-    return toBuilder().byField(byField).build();
-  }
-
-  public Timechart limit(Integer limit) {
-    return toBuilder().limit(limit).build();
-  }
-
-  public Timechart useOther(Boolean useOther) {
-    return toBuilder().useOther(useOther).build();
-  }
+  private UnresolvedExpression rowSplit;
+  private UnresolvedExpression columnSplit;
+  private UnresolvedExpression aggregationFunction;
+  private List<Argument> arguments;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -85,44 +72,53 @@ public class Timechart extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitTimechart(this, context);
+    return nodeVisitor.visitChart(this, context);
   }
 
   /**
-   * Transform per function to eval-based post-processing on sum result by timechart. Specifically,
+   * Transform per function to eval-based post-processing on sum result by chart. Specifically,
    * calculate how many seconds are in the time bucket based on the span option dynamically, then
    * divide the aggregated sum value by the number of seconds to get the per-second rate.
    *
    * <p>For example, with span=5m per_second(field): per second rate = sum(field) / 300 seconds
    *
-   * @return eval+timechart if per function present, or the original timechart otherwise.
+   * @return eval+chart if per function present, or the original chart otherwise.
    */
   private UnresolvedPlan transformPerFunction() {
-    Optional<PerFunction> perFuncOpt = PerFunction.from(aggregateFunction);
+    Optional<PerFunction> perFuncOpt = PerFunction.from(aggregationFunction);
     if (perFuncOpt.isEmpty()) {
       return this;
     }
 
     PerFunction perFunc = perFuncOpt.get();
-    Span span = (Span) this.binExpression;
-    Field spanStartTime = AstDSL.field(IMPLICIT_FIELD_TIMESTAMP);
+    // For chart, the rowSplit should contain the span information
+    UnresolvedExpression spanExpr = rowSplit;
+    if (rowSplit instanceof Alias) {
+      spanExpr = ((Alias) rowSplit).getDelegated();
+    }
+    if (!(spanExpr instanceof Span)) {
+      return this; // Cannot transform without span information
+    }
+
+    Span span = (Span) spanExpr;
+    Field spanStartTime = AstDSL.implicitTimestampField();
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
     Function spanMillis = timestampdiff(MILLISECOND, spanStartTime, spanEndTime);
     final int SECOND_IN_MILLISECOND = 1000;
     return eval(
-        timechart(AstDSL.alias(perFunc.aggName, sum(perFunc.aggArg))),
+        chart(AstDSL.alias(perFunc.aggName, PerFunctionRateExprBuilder.sum(perFunc.aggArg))),
         let(perFunc.aggName)
             .multiply(perFunc.seconds * SECOND_IN_MILLISECOND)
             .dividedBy(spanMillis));
   }
 
-  private Timechart timechart(UnresolvedExpression newAggregateFunction) {
-    return this.toBuilder().aggregateFunction(newAggregateFunction).build();
+  private Chart chart(UnresolvedExpression newAggregationFunction) {
+    return this.toBuilder().aggregationFunction(newAggregationFunction).build();
   }
 
   @RequiredArgsConstructor
@@ -138,6 +134,10 @@ public class Timechart extends UnresolvedPlan {
     private final int seconds;
 
     static Optional<PerFunction> from(UnresolvedExpression aggExpr) {
+      if (aggExpr instanceof Alias) {
+        return from(((Alias) aggExpr).getDelegated());
+      }
+      ;
       if (!(aggExpr instanceof AggregateFunction)) {
         return Optional.empty();
       }
