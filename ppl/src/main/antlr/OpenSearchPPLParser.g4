@@ -1267,6 +1267,7 @@ timestampFunctionName
 // condition function return boolean value
 conditionFunctionName
    : LIKE
+   | ILIKE
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
@@ -1329,6 +1330,7 @@ positionFunctionName
    | NOT_GREATER
    | REGEXP
    | LIKE
+   | ILIKE
    ;
 
 singleFieldRelevanceFunctionName
