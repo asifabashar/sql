@@ -20,7 +20,7 @@ Syntax
 ``addcoltotals [field-list] [label=<string>] [labelfield=<field>]  ``
 
 * ``field-list``: Optional. Comma-separated list of numeric fields to sum. If not specified, all numeric fields are summed.
-* ``labelfield=<field>``: Optional. Field name to place the label. If it  specifies a non-existing field, adds the field and shows label at the summary event row at this field.
+* ``labelfield=<field>``: Optional. Field name to place the label. If it specifies a non-existing field, adds the field and shows label at the summary event row at this field.
 * ``label=<string>``: Optional. Custom text for the totals row labelfield's label. Default is "Total".
 
 

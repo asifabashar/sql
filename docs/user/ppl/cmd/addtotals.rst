@@ -23,7 +23,7 @@ Syntax
 * ``row=<boolean>``: Optional. Calculates total of each row and add a new field with the total. Default is true.
 * ``col=<boolean>``: Optional. Calculates total of each column and add a new event at the end of all events with the total. Default is false.
 * ``labelfield=<field>``: Optional. Field name to place the label. If it  specifies a non-existing field, adds the field and shows label at the summary event row at this field. This is applicable when col=true.
-* ``label=<string>``: Optional. Custom text for the totals row labelfield's label. Default is "Total".  This is applicable when col=true. This does not have any effect when labelfield  and fieldname parameter both have same value.
+* ``label=<string>``: Optional. Custom text for the totals row labelfield's label. Default is "Total".  This is applicable when col=true. This does not have any effect when labelfield and fieldname parameter both have same value.
 * ``fieldname=<field>``: Optional. Calculates total of each row and add a new field to store this total. This is applicable when row=true.
 
 
