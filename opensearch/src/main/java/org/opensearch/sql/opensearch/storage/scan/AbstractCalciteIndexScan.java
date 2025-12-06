@@ -11,6 +11,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -43,6 +44,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -61,7 +63,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public abstract class AbstractCalciteIndexScan extends TableScan {
+public abstract class AbstractCalciteIndexScan extends TableScan implements AliasFieldsWrappable {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
@@ -122,13 +124,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
                   case PROJECT, SORT, SORT_EXPR -> rowCount;
-                  case SORT_AGG_METRICS -> NumberUtil.min(
-                      rowCount, osIndex.getBucketSize().doubleValue());
-                    // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
-                  case COLLAPSE -> rowCount / 10;
-                  case FILTER, SCRIPT -> NumberUtil.multiply(
-                      rowCount,
-                      RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+                  case SORT_AGG_METRICS ->
+                      NumberUtil.min(rowCount, osIndex.getBucketSize().doubleValue());
+                  // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
+                  case FILTER, SCRIPT ->
+                      NumberUtil.multiply(
+                          rowCount,
+                          RelMdUtil.guessSelectivity(
+                              ((FilterDigest) operation.digest()).condition()));
                   case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
                   case RARE_TOP -> {
                     /** similar to {@link Aggregate#estimateRowCount(RelMetadataQuery)} */
@@ -166,7 +169,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           dRows = mq.getRowCount((RelNode) operation.digest());
           dCpu += dRows * getAggMultiplier(operation);
         }
-          // Ignored Project in cost accumulation, but it will affect the external cost
+        // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT -> {}
         case SORT -> dCpu += dRows;
         case SORT_AGG_METRICS -> {
@@ -180,15 +183,12 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               sortKeys.stream().filter(digest -> digest.getExpression() != null).count();
           dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
         }
-          // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
-        case COLLAPSE -> {
-          dRows = dRows / 10;
-          dCpu += dRows;
-        }
-          // Ignore cost the primitive filter but it will affect the rows count.
-        case FILTER -> dRows =
-            NumberUtil.multiply(
-                dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+        // Ignore cost the primitive filter but it will affect the rows count.
+        case FILTER ->
+            dRows =
+                NumberUtil.multiply(
+                    dRows,
+                    RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
         case SCRIPT -> {
           FilterDigest filterDigest = (FilterDigest) operation.digest();
           dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition()));
@@ -196,10 +196,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // the factor amplified by script count.
           dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.scriptCount()));
         }
-          // Ignore cost the LIMIT but it will affect the rows count.
-          // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
-          // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
-          // dRows.
+        // Ignore cost the LIMIT but it will affect the rows count.
+        // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
+        // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
+        // dRows.
         case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
         case RARE_TOP -> {
           /** similar to {@link Aggregate#computeSelfCost(RelOptPlanner, RelMetadataQuery)} */
@@ -253,6 +253,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext);
+
+  @Override
+  public Map<String, String> getAliasMapping() {
+    return osIndex.getAliasMapping();
+  }
 
   protected List<String> getCollationNames(List<RelFieldCollation> collations) {
     return collations.stream()
@@ -425,5 +430,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   public boolean isTopKPushed() {
     return this.getPushDownContext().isTopKPushed();
+  }
+
+  public boolean isScriptPushed() {
+    return this.getPushDownContext().isScriptPushed();
+  }
+
+  public boolean isProjectPushed() {
+    return this.getPushDownContext().isProjectPushed();
   }
 }
