@@ -718,8 +718,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandSingleField() {
     assertEquals(
-        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[])",
-        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname1"));
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname"));
   }
 
   @Test
@@ -746,8 +746,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandWithWildcards() {
     assertEquals(
-        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[])",
-        anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname1"));
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname"));
   }
 
   @Test
@@ -785,9 +785,9 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testRegex() {
     assertEquals(
-        "source=table | regex identifier=***", anonymize("source=t | regex field='pattern'"));
+        "source=table | regex identifier=***", anonymize("source=t | regex fieldname='pattern'"));
     assertEquals(
-        "source=table | regex identifier!=***", anonymize("source=t | regex field!='pattern'"));
+        "source=table | regex identifier!=***", anonymize("source=t | regex fieldname!='pattern'"));
     assertEquals(
         "source=table | regex identifier=*** | fields + identifier",
         anonymize("source=t | regex email='.*@domain.com' | fields email"));

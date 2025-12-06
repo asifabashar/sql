@@ -272,6 +272,49 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+    @Test
+    public void testAddColTotalsMatchingLabelFieldWithExistingChangedOrder() throws IOException {
+        String ppl =
+                "source=EMP  | fields DEPTNO, SAL, JOB | addcoltotals label='GrandTotal'"
+                        + " labelfield='JOB' SAL ";
+        RelNode root = getRelNode(ppl);
+        String expectedLogical =
+                "LogicalUnion(all=[true])\n"
+                        + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])\n"
+                        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+                        + "  LogicalProject(DEPTNO=[null:TINYINT], SAL=[$0], JOB=['GrandTota':VARCHAR(9)])\n"
+                        + "    LogicalAggregate(group=[{}], SAL=[SUM($0)])\n"
+                        + "      LogicalProject(SAL=[$5])\n"
+                        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        verifyLogical(root, expectedLogical);
+        String expectedResult =
+                "DEPTNO=20; SAL=800.00; JOB=CLERK\n"
+                        + "DEPTNO=30; SAL=1600.00; JOB=SALESMAN\n"
+                        + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN\n"
+                        + "DEPTNO=20; SAL=2975.00; JOB=MANAGER\n"
+                        + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN\n"
+                        + "DEPTNO=30; SAL=2850.00; JOB=MANAGER\n"
+                        + "DEPTNO=10; SAL=2450.00; JOB=MANAGER\n"
+                        + "DEPTNO=20; SAL=3000.00; JOB=ANALYST\n"
+                        + "DEPTNO=10; SAL=5000.00; JOB=PRESIDENT\n"
+                        + "DEPTNO=30; SAL=1500.00; JOB=SALESMAN\n"
+                        + "DEPTNO=20; SAL=1100.00; JOB=CLERK\n"
+                        + "DEPTNO=30; SAL=950.00; JOB=CLERK\n"
+                        + "DEPTNO=20; SAL=3000.00; JOB=ANALYST\n"
+                        + "DEPTNO=10; SAL=1300.00; JOB=CLERK\n"
+                        + "DEPTNO=null; SAL=29025.00; JOB=GrandTota\n";
+        verifyResult(root, expectedResult);
+
+        String expectedSparkSql =
+                "SELECT `DEPTNO`, `SAL`, `JOB`\n"
+                        + "FROM `scott`.`EMP`\n"
+                        + "UNION ALL\n"
+                        + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, SUM(`SAL`) `SAL`, 'GrandTota' `JOB`\n"
+                        + "FROM `scott`.`EMP`";
+
+        verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
+
   @Test
   public void testAddColTotalsAllFieldsWithLabel() throws IOException {
     String ppl = "source=EMP  | addcoltotals label='GrandTotal' " + " labelfield='JOB' ";
