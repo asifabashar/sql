@@ -105,7 +105,7 @@ public class CalciteAddTotalsCommandIT extends PPLIntegTestCase {
     return str != null && str.matches("-?\\d+(\\.\\d+)?");
   }
 
-  public void compareDataRowTotals(
+  private void compareDataRowTotals(
       org.json.JSONArray dataRows, List<Integer> fieldIndexes, int totalColIndex) {
     for (int i = 0; i < dataRows.length(); i++) {
       var row = dataRows.getJSONArray(i);
@@ -123,8 +123,7 @@ public class CalciteAddTotalsCommandIT extends PPLIntegTestCase {
           cRowTotal = cRowTotal.add((BigDecimal) value);
 
         } else if (value instanceof String) {
-          if (org.opensearch.sql.calcite.remote.CalciteAddTotalsCommandIT.isNumeric(
-              (String) value)) {
+          if (isNumeric((String) value)) {
             cRowTotal = cRowTotal.add(new BigDecimal((String) (value)));
           }
         }
