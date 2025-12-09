@@ -96,6 +96,8 @@ The query start with search command and then flowing a set of command delimited 
   `describe command <cmd/describe.rst>`_                          2.1                 stable (since 2.1)        Query the metadata of an index.
   `explain command <cmd/explain.rst>`_                            3.1                 stable (since 3.1)        Explain the plan of query.
   `show datasources command <cmd/showdatasources.rst>`_           2.4                 stable (since 2.4)        Query datasources configured in the PPL engine.
+  `addtotals command <cmd/addtotals.rst>`_                        3.4                 stable (since 3.4)        Adds row and column values and appends a totals column and row.
+  `addcoltotals command <cmd/addcoltotals.rst>`_                  3.4                 stable (since 3.4)        Adds column values and appends a totals row.
   ==============================================================  ==================  ========================  ==============================================================================================
 
   - `Syntax <cmd/syntax.rst>`_ - PPL query structure and command syntax formatting
