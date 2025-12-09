@@ -145,7 +145,7 @@ Following example converts a string in binary to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 21        |
+    | 21.0      |
     +-----------+
 
 
@@ -156,7 +156,7 @@ Following example converts a string in hex to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 64052     |
+    | 64052.0   |
     +-----------+
 
 Following example converts a string in decimal  to the number representation::
@@ -166,7 +166,7 @@ Following example converts a string in decimal  to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 4598      |
+    | 4598.0    |
     +-----------+
 
 Following example converts a string in decimal with fraction  to the number representation::

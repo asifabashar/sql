@@ -39,7 +39,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
                 "source=%s |head 1| eval a = tonumber('FF12CA',16)  | fields a",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     verifyDataRows(actual, rows(16716490));
   }
@@ -52,7 +52,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
                 "source=%s |head 1| eval a = tonumber('0110111',2)  | fields a",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     verifyDataRows(actual, rows(55));
   }
@@ -65,7 +65,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
                 "source=%s |head 1| eval a = tonumber('20415442',8)  | fields a",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     verifyDataRows(actual, rows(4332322));
   }
@@ -78,7 +78,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
                 "source=%s |head 1| eval a = tonumber('20415.442',8)  | fields a",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     assertEquals(actual.getJSONArray("datarows").getJSONArray(0).get(0), null);
   }
@@ -91,7 +91,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
                 "source=%s |head 1| eval a = tonumber('1010.11',2)  | fields a",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     assertEquals(actual.getJSONArray("datarows").getJSONArray(0).get(0), null);
   }
@@ -103,7 +103,7 @@ public class ConversionFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s |head 1| eval a = tonumber('A.B',16)  | fields a", TEST_INDEX_ACCOUNT));
 
-    verifySchema(actual, schema("a", "bigint"));
+    verifySchema(actual, schema("a", "double"));
 
     assertEquals(actual.getJSONArray("datarows").getJSONArray(0).get(0), null);
   }

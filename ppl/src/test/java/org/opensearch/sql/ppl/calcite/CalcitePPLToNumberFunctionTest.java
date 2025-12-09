@@ -24,11 +24,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(int_value=[TONUMBER('010101':VARCHAR, 2)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "int_value=21\n";
+    String expectedResult = "int_value=21.0\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('010101', 2) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('010101', 2) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -45,7 +45,7 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('010.101', 2) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('010.101', 2) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -58,11 +58,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(int_value=[TONUMBER('FA34':VARCHAR, 16)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "int_value=64052\n";
+    String expectedResult = "int_value=64052.0\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('FA34', 16) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('FA34', 16) `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -80,7 +80,7 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('FA.34', 16) `double_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('FA.34', 16) `double_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -95,11 +95,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(long_value=[TONUMBER('-7FFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "long_value=-9223372036854775807\n";
+    String expectedResult = "long_value=-9.223372036854776E18\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('-7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('-7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -115,11 +115,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(long_value=[TONUMBER('7FFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "long_value=9223372036854775807\n";
+    String expectedResult = "long_value=9.223372036854776E18\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('7FFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -135,11 +135,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(long_value=[TONUMBER('-FFFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "long_value=1\n";
+    String expectedResult = "long_value=1.0\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('-FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('-FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -154,11 +154,11 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(long_value=[TONUMBER('FFFFFFFFFFFFFFFF':VARCHAR, 16)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "long_value=-1\n";
+    String expectedResult = "long_value=-1.0\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('FFFFFFFFFFFFFFFF', 16) `long_value`\nFROM `scott`.`EMP`\nLIMIT 1";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -172,10 +172,10 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalProject(int_value=[TONUMBER('4598':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "int_value=4598\n";
+    String expectedResult = "int_value=4598.0\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql = "SELECT TONUMBER('4598') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT `TONUMBER`('4598') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -192,7 +192,7 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('4598.54922') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('4598.54922') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -209,7 +209,7 @@ public class CalcitePPLToNumberFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT TONUMBER('4A598.54922') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `TONUMBER`('4A598.54922') `int_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
