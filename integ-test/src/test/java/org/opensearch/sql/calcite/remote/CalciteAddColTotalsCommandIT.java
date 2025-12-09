@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl;
+package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -14,11 +14,14 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-public class AddColTotalsCommandIT extends PPLIntegTestCase {
+public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
+    enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
   }
@@ -89,7 +92,8 @@ public class AddColTotalsCommandIT extends PPLIntegTestCase {
           cColTotals[j] = cColTotals[j].add((BigDecimal) value);
 
         } else if (value instanceof String) {
-          if (AddColTotalsCommandIT.isNumeric((String) value)) {
+          if (org.opensearch.sql.calcite.remote.CalciteAddColTotalsCommandIT.isNumeric(
+              (String) value)) {
             cColTotals[j] = cColTotals[j].add(new BigDecimal((String) (value)));
           }
         }
