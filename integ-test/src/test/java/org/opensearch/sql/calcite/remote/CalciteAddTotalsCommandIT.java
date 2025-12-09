@@ -134,7 +134,7 @@ public class CalciteAddTotalsCommandIT extends PPLIntegTestCase {
     }
   }
 
-  public void verifyColTotals(
+  private void verifyColTotals(
       org.json.JSONArray dataRows, List<Integer> field_indexes, String finalSummaryEventLevel) {
 
     BigDecimal[] cColTotals = new BigDecimal[field_indexes.size()];
@@ -157,8 +157,7 @@ public class CalciteAddTotalsCommandIT extends PPLIntegTestCase {
           cColTotals[j] = cColTotals[j].add((BigDecimal) value);
 
         } else if (value instanceof String) {
-          if (org.opensearch.sql.calcite.remote.CalciteAddTotalsCommandIT.isNumeric(
-              (String) value)) {
+          if (isNumeric((String) value)) {
             cColTotals[j] = cColTotals[j].add(new BigDecimal((String) (value)));
           }
         }
