@@ -424,49 +424,48 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+    @Test
+    public void testAddTotalsMatchingLabelFieldWithExistingChangedOrder() throws IOException {
+        String ppl =
+                "source=EMP  | fields DEPTNO, SAL, JOB | addtotals col=true label='ColTotal'"
+                        + " labelfield='JOB' SAL DEPTNO  ";
+        // default is row=true for addtotals
+        RelNode root = getRelNode(ppl);
+        String expectedLogical =
+                "LogicalUnion(all=[true])\n"
+                        + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)])\n"
+                        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+                        + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
+                        + " Total=[null:DECIMAL(8, 2)])\n"
+                        + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
+                        + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+                        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+        verifyLogical(root, expectedLogical);
+        String expectedResult =
+                "DEPTNO=20; SAL=800.00; JOB=CLERK; Total=820.00\n"
+                        + "DEPTNO=30; SAL=1600.00; JOB=SALESMAN; Total=1630.00\n"
+                        + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN; Total=1280.00\n"
+                        + "DEPTNO=20; SAL=2975.00; JOB=MANAGER; Total=2995.00\n"
+                        + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN; Total=1280.00\n"
+                        + "DEPTNO=30; SAL=2850.00; JOB=MANAGER; Total=2880.00\n"
+                        + "DEPTNO=10; SAL=2450.00; JOB=MANAGER; Total=2460.00\n"
+                        + "DEPTNO=20; SAL=3000.00; JOB=ANALYST; Total=3020.00\n"
+                        + "DEPTNO=10; SAL=5000.00; JOB=PRESIDENT; Total=5010.00\n"
+                        + "DEPTNO=30; SAL=1500.00; JOB=SALESMAN; Total=1530.00\n"
+                        + "DEPTNO=20; SAL=1100.00; JOB=CLERK; Total=1120.00\n"
+                        + "DEPTNO=30; SAL=950.00; JOB=CLERK; Total=980.00\n"
+                        + "DEPTNO=20; SAL=3000.00; JOB=ANALYST; Total=3020.00\n"
+                        + "DEPTNO=10; SAL=1300.00; JOB=CLERK; Total=1310.00\n"
+                        + "DEPTNO=310; SAL=29025.00; JOB=ColTotal; Total=null\n";
+        verifyResult(root, expectedResult);
 
-  @Test
-  public void testAddTotalsMatchingLabelFieldWithExistingChangedOrder() throws IOException {
-    String ppl =
-        "source=EMP  | fields DEPTNO, SAL, JOB | addtotals col=true label='ColTotal'"
-            + " labelfield='JOB' SAL DEPTNO  ";
-    // default is row=true for addtotals
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2], Total=[+($7, $5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$0], SAL=[$1], JOB=['ColTotal':VARCHAR(9)],"
-            + " Total=[null:DECIMAL(8, 2)])\n"
-            + "    LogicalAggregate(group=[{}], DEPTNO=[SUM($0)], SAL=[SUM($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult =
-        "DEPTNO=20; SAL=800.00; JOB=CLERK; Total=820.00\n"
-            + "DEPTNO=30; SAL=1600.00; JOB=SALESMAN; Total=1630.00\n"
-            + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN; Total=1280.00\n"
-            + "DEPTNO=20; SAL=2975.00; JOB=MANAGER; Total=2995.00\n"
-            + "DEPTNO=30; SAL=1250.00; JOB=SALESMAN; Total=1280.00\n"
-            + "DEPTNO=30; SAL=2850.00; JOB=MANAGER; Total=2880.00\n"
-            + "DEPTNO=10; SAL=2450.00; JOB=MANAGER; Total=2460.00\n"
-            + "DEPTNO=20; SAL=3000.00; JOB=ANALYST; Total=3020.00\n"
-            + "DEPTNO=10; SAL=5000.00; JOB=PRESIDENT; Total=5010.00\n"
-            + "DEPTNO=30; SAL=1500.00; JOB=SALESMAN; Total=1530.00\n"
-            + "DEPTNO=20; SAL=1100.00; JOB=CLERK; Total=1120.00\n"
-            + "DEPTNO=30; SAL=950.00; JOB=CLERK; Total=980.00\n"
-            + "DEPTNO=20; SAL=3000.00; JOB=ANALYST; Total=3020.00\n"
-            + "DEPTNO=10; SAL=1300.00; JOB=CLERK; Total=1310.00\n"
-            + "DEPTNO=310; SAL=29025.00; JOB=ColTotal; Total=null\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, 'ColTotal' `JOB`, CAST(NULL AS"
-            + " DECIMAL(8, 2)) `Total`\n"
-            + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
+        String expectedSparkSql =
+                "SELECT `DEPTNO`, `SAL`, `JOB`, `DEPTNO` + `SAL` `Total`\n"
+                        + "FROM `scott`.`EMP`\n"
+                        + "UNION ALL\n"
+                        + "SELECT SUM(`DEPTNO`) `DEPTNO`, SUM(`SAL`) `SAL`, 'ColTotal' `JOB`, CAST(NULL AS"
+                        + " DECIMAL(8, 2)) `Total`\n"
+                        + "FROM `scott`.`EMP`";
+        verifyPPLToSparkSQL(root, expectedSparkSql);
+    }
 }
