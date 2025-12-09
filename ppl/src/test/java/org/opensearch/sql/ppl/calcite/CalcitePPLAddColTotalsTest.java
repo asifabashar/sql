@@ -315,7 +315,6 @@ public class CalcitePPLAddColTotalsTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-
   @Test
   public void testAddColTotalsAllFieldsWithLabel() throws IOException {
     String ppl = "source=EMP  | addcoltotals label='GrandTotal' " + " labelfield='JOB' ";
