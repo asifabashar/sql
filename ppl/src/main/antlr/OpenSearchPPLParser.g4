@@ -1125,6 +1125,7 @@ collectionFunctionName
     | MVJOIN
     | MVINDEX
     | MVDEDUP
+    | SPLIT
     | FORALL
     | EXISTS
     | FILTER
