@@ -2529,13 +2529,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RexNode getAggregateDataTypeFieldRef(
       CalcitePlanContext context, RexNode fieldRef, RelDataTypeField fieldDataType) {
     RexNode castFieldRef = fieldRef;
-    if (fieldDataType.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.BIGINT);
-    } else if ((fieldDataType.getType().getSqlTypeName() == SqlTypeName.FLOAT)
-        || (fieldDataType.getType().getSqlTypeName() == SqlTypeName.REAL)) {
-      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.DOUBLE);
-    }
 
+    /**
+     * if (fieldDataType.getType().getSqlTypeName() == SqlTypeName.INTEGER) { castFieldRef =
+     * context.relBuilder.cast(fieldRef, SqlTypeName.BIGINT); } else if
+     * ((fieldDataType.getType().getSqlTypeName() == SqlTypeName.FLOAT) ||
+     * (fieldDataType.getType().getSqlTypeName() == SqlTypeName.REAL)) { castFieldRef =
+     * context.relBuilder.cast(fieldRef, SqlTypeName.DOUBLE); }
+     */
     return castFieldRef;
   }
 
