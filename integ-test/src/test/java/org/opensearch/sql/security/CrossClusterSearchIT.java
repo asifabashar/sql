@@ -286,8 +286,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows("firstname", "Nanette", "Hattie", "Dale"),
-        rows("balance", "32838", "5686", "4180"),
-        rows("age", "28", "36", "33"));
+        rows("balance  ", "32838", "5686", "4180"),
+        rows("age      ", "28", "36", "33"));
   }
 
   @Test
