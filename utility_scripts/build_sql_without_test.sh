@@ -1,0 +1,2 @@
+./gradlew spotlessApply
+./gradlew build -x integTest -x :ppl:test -x ppl:jacocoTestCoverageVerification -x :async-query:test -x :async-query:jacocoTestReport -x :async-query:jacocoTestCoverageVerification -x :doctest:startOpenSearch -x :opensearch-sql-plugin:test -x :doctest:doctest -x :integ-test:yamlRestTest -x :core:spotlessJavaCheck -x :prometheus:test -x :sql:test -x :prometheus:jacocoTestReport  -x :sql:jacocoTestCoverageVerification  -x :prometheus:jacocoTestCoverageVerification -x :api:test -x :api:jacocoTestCoverageVerification -x :legacy:test 
