@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DynamicSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldformatCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -91,6 +92,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -111,6 +113,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
@@ -742,6 +745,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Reverse();
   }
 
+  /** Transpose command. */
+  @Override
+  public UnresolvedPlan visitTransposeCommand(OpenSearchPPLParser.TransposeCommandContext ctx) {
+    java.util.Map<String, Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    return new Transpose(arguments);
+  }
+
   /** Chart command. */
   @Override
   public UnresolvedPlan visitChartCommand(OpenSearchPPLParser.ChartCommandContext ctx) {
@@ -813,6 +823,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .collect(Collectors.toList()));
   }
 
+  @Override
+  public UnresolvedPlan visitFieldformatCommand(FieldformatCommandContext ctx) {
+    // Use the new fieldFormatEvalClause instead of evalClause
+    org.opensearch.sql.ast.tree.Eval eval =
+        new org.opensearch.sql.ast.tree.Eval(
+            ctx.fieldFormatEvalClause().stream()
+                .map(ct -> (Let) internalVisitExpression(ct))
+                .collect(Collectors.toList()));
+
+    return eval;
+  }
+
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
     return ctx.fieldList().fieldExpression().stream()
         .map(this::internalVisitExpression)
@@ -872,6 +894,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
     String alias = ctx.alias != null ? internalVisitExpression(ctx.alias).toString() : null;
     return new Expand(fieldExpression, alias);
+  }
+
+  /** mvcombine command. */
+  @Override
+  public UnresolvedPlan visitMvcombineCommand(OpenSearchPPLParser.MvcombineCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+
+    String delim = null;
+    if (ctx.DELIM() != null) {
+      delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
+    }
+    return new MvCombine(field, delim);
   }
 
   @Override

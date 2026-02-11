@@ -85,9 +85,12 @@ commands
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
+   | fieldformatCommand
    ;
 
 commandName
@@ -105,6 +108,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FIELDFORMAT
    | HEAD
    | BIN
    | TOP
@@ -131,6 +135,8 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | MVCOMBINE
+   | TRANSPOSE
    ;
 
 searchCommand
@@ -328,6 +334,16 @@ timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
+   ;
+
+
 timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
@@ -345,6 +361,10 @@ spanLiteral
 
 evalCommand
    : EVAL evalClause (COMMA evalClause)*
+   ;
+
+fieldformatCommand
+   : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
    ;
 
 headCommand
@@ -530,6 +550,10 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+mvcombineCommand
+  : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
+  ;
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
@@ -720,6 +744,10 @@ evalClause
    : fieldExpression EQUAL logicalExpression
    ;
 
+fieldFormatEvalClause
+   : fieldExpression EQUAL ffLogicalExpression
+   ;
+
 eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
@@ -813,6 +841,13 @@ numericLiteral
     | floatLiteral
     ;
 
+ffLogicalExpression
+   : stringLiteral DOT logicalExpression   # stringDotlogicalExpression
+   | stringLiteral DOT logicalExpression  DOT stringLiteral # stringDotlogicalExpressionDotString
+   | logicalExpression DOT stringLiteral   # logicalExpressionDotString
+   | logicalExpression                     # ffStandardLogicalExpression
+   ;
+
 // predicates
 logicalExpression
    : NOT logicalExpression                                      # logicalNot
@@ -829,6 +864,7 @@ expression
    | expression NOT? IN valueList                               # inExpr
    | expression NOT? BETWEEN expression AND expression          # between
    ;
+
 
 valueExpression
    : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression                   # binaryArithmetic
@@ -1657,5 +1693,6 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | COLUMN_NAME
    ;
 

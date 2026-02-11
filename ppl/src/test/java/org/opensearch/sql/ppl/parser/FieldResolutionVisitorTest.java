@@ -173,6 +173,16 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testMvCombineAddsTargetFieldToRequirements() {
+    assertSingleRelationFields("source=logs | mvcombine packets_str", Set.of("packets_str"), "*");
+  }
+
+  @Test
+  public void testMvCombineAddsWildcard() {
+    assertSingleRelationFields("source=logs | mvcombine packets_str", Set.of("packets_str"), "*");
+  }
+
+  @Test
   public void testSimpleJoin() {
     assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2",
@@ -369,6 +379,38 @@ public class FieldResolutionVisitorTest {
         Map.of(
             "main", new FieldResolutionResult(Set.of("a", "testCase"), "*"),
             "sub", new FieldResolutionResult(Set.of("a", "c", "testCase"), "*")));
+  }
+
+  @Test
+  public void testAppendCol() {
+    String query =
+        "source=main | where testCase='simple' | eval c = 4 | "
+            + "appendcol [where testCase='simple' ] | fields a, c, *";
+    assertMultiRelationFields(
+        query, Map.of("main", new FieldResolutionResult(Set.of("a", "testCase"), "*")));
+  }
+
+  @Test
+  public void testAppendpipe() {
+    String query =
+        "source=main | where testCase='simple' | stats sum(a) as sum_a by b | "
+            + "appendpipe [stats sum(sum_a) as total] | head 5";
+    assertMultiRelationFields(
+        query, Map.of("main", new FieldResolutionResult(Set.of("a", "b", "testCase"))));
+  }
+
+  @Test
+  public void testMultisearch() {
+    String query =
+        "| multisearch [source=main | where testCase='simple'] [source=sub | where"
+            + " testCase='simple'] | fields a, c, *";
+    assertMultiRelationFields(
+        query,
+        Map.of(
+            "main",
+            new FieldResolutionResult(Set.of("a", "c", "testCase"), "*"),
+            "sub",
+            new FieldResolutionResult(Set.of("a", "c", "testCase"), "*")));
   }
 
   @Test

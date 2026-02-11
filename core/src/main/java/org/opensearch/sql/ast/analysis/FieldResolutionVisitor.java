@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -59,6 +60,7 @@ import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -350,12 +352,6 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
-  public Node visitAppendPipe(AppendPipe node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
-  }
-
-  @Override
   public Node visitRegex(Regex node, FieldResolutionContext context) {
     Set<String> regexFields = extractFieldsFromExpression(node.getField());
     context.pushRequirements(context.getCurrentRequirements().or(regexFields));
@@ -507,8 +503,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitAppendCol(AppendCol node, FieldResolutionContext context) {
-    throw new IllegalArgumentException(
-        "AppendCol command cannot be used together with spath command");
+    // dispatch requirements to subsearch and main
+    acceptAndVerifyNodeVisited(node.getSubSearch(), context);
+    visitChildren(node, context);
+    return node;
   }
 
   @Override
@@ -520,9 +518,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
-  public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
-    throw new IllegalArgumentException(
-        "Multisearch command cannot be used together with spath command");
+  public Node visitAppendPipe(AppendPipe node, FieldResolutionContext context) {
+    acceptAndVerifyNodeVisited(node.getSubQuery(), context);
+    visitChildren(node, context);
+    return node;
   }
 
   @Override
@@ -532,7 +531,16 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitValues(Values node, FieldResolutionContext context) {
-    throw new IllegalArgumentException("Values command cannot be used together with spath command");
+    // do nothing
+    return node;
+  }
+
+  @Override
+  public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
+    // dispatch requirements to subsearches and main
+    node.getSubsearches().forEach(subsearch -> acceptAndVerifyNodeVisited(subsearch, context));
+    visitChildren(node, context);
+    return node;
   }
 
   @Override
@@ -567,6 +575,12 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     context.pushRequirements(context.getCurrentRequirements().or(trendlineFields));
     visitChildren(node, context);
     context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitTranspose(Transpose node, FieldResolutionContext context) {
+    visitChildren(node, context);
     return node;
   }
 
@@ -613,9 +627,31 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   }
 
   @Override
+  public Node visitFieldFormat(Eval node, FieldResolutionContext context) {
+    visitChildren(node, context);
+    return node;
+  }
+
+  @Override
   public Node visitExpand(Expand node, FieldResolutionContext context) {
     Set<String> expandFields = extractFieldsFromExpression(node.getField());
     context.pushRequirements(context.getCurrentRequirements().or(expandFields));
+    visitChildren(node, context);
+    context.popRequirements();
+    return node;
+  }
+
+  @Override
+  public Node visitMvCombine(MvCombine node, FieldResolutionContext context) {
+    Set<String> mvCombineFields = extractFieldsFromExpression(node.getField());
+
+    FieldResolutionResult current = context.getCurrentRequirements();
+
+    Set<String> regularFields = new HashSet<>(current.getRegularFields());
+    regularFields.addAll(mvCombineFields);
+
+    context.pushRequirements(new FieldResolutionResult(regularFields, Set.of(ALL_FIELDS)));
+
     visitChildren(node, context);
     context.popRequirements();
     return node;

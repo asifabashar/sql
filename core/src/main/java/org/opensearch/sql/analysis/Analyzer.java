@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -99,6 +100,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -524,6 +526,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalEval(child, expressionsBuilder.build());
   }
 
+  /** Build {@link LogicalEval}. */
+  @Override
+  public LogicalPlan visitFieldFormat(Eval node, AnalysisContext context) {
+    throw getOnlyForCalciteException("fieldformat");
+  }
+
   @Override
   public LogicalPlan visitAddTotals(AddTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addtotals");
@@ -532,6 +540,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAddColTotals(AddColTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addcoltotals");
+  }
+
+  @Override
+  public LogicalPlan visitMvCombine(MvCombine node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvcombine");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
@@ -702,6 +715,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  @Override
+  public LogicalPlan visitTranspose(Transpose node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Transpose");
   }
 
   @Override
