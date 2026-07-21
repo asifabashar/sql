@@ -3965,7 +3965,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
       }
     }
-
+    // Fail fast with a clear message if the naming scheme produced collisions
+    // (e.g. a format template that omits $VAL$ or $AGG$ with multiple series).
+    Set<String> seenNames = new HashSet<>();
+    for (String name : reorderNames) {
+      if (!seenNames.add(name)) {
+        throw new IllegalArgumentException(
+            "xyseries produced duplicate output column name '"
+                + name
+                + "'. Use a format template containing both $AGG$ and $VAL$ so column names"
+                + " are unique.");
+      }
+    }
     b.project(reorderProjections, reorderNames, true);
 
     // Order by x-field
