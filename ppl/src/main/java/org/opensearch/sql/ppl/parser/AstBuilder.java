@@ -1708,6 +1708,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     List<String> pivotValues =
         ctx.xyseriesPivotValues().stringLiteral().stream()
             .map(s -> StringUtils.unquoteText(s.getText()))
+            .distinct()
             .collect(Collectors.toList());
 
     // Parse y-data fields
