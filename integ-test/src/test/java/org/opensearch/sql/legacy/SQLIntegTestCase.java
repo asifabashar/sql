@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -59,6 +60,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public boolean shouldResetQuerySizeLimit() {
     return true;
   }
+
+  @Rule public final CapabilityRule capabilityRule = new CapabilityRule();
 
   @Before
   public void setUpIndices() throws Exception {
@@ -136,6 +139,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
+    // No client when every test in the class was skipped (e.g. @RequiresCapability on the AE
+    // route).
+    if (client() == null) {
+      return;
+    }
     if (System.getProperty("tests.rest.bwcsuite") == null) {
       wipeAllOpenSearchIndices();
       wipeAllClusterSettings();
@@ -214,7 +222,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     if (!isIndexExist(client, indexName)) {
       createIndexByRestClient(client, indexName, mapping);
-      loadDataByRestClient(client, indexName, dataSet);
+      // On the analytics-engine route, unsupported-typed fields are stripped from the mapping; drop
+      // the same keys from the bulk data so the two agree. Empty (no-op) off the AE route.
+      loadDataByRestClient(client, indexName, dataSet, analyticsDroppedFields(mapping));
     }
   }
 
@@ -979,7 +989,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "events_traffic",
         "events_traffic",
         getMappingFile("events_traffic_index_mapping.json"),
-        "src/test/resources/events_traffic.json");
+        "src/test/resources/events_traffic.json"),
+    TIMEWRAP_TEST(
+        "timewrap_test",
+        "timewrap_test",
+        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"requests\":{\"type\":\"integer\"},\"errors\":{\"type\":\"integer\"}}}}",
+        "src/test/resources/timewrap_test.json");
 
     private final String name;
     private final String type;

@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -97,6 +98,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -130,6 +132,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -139,6 +142,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -161,6 +165,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.Union;
@@ -176,19 +181,23 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.TimewrapUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
@@ -212,12 +221,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
   private final MapPathPreMaterializer mapPathMaterializer;
+  private final ForeachPlanner foreachPlanner;
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
     this.mapPathMaterializer = new MapPathPreMaterializer(rexVisitor);
+    this.foreachPlanner = new ForeachPlanner(this, rexVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -518,8 +529,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }
     AllFields allFields = (AllFields) node.getProjectList().getFirst();
-    if (!(allFields instanceof AllFieldsExcludeMeta)) {
-      // Should not remove nested fields for AllFieldsExcludeMeta.
+    if (!(allFields instanceof AllFieldsExcludeMeta) && !context.isProjectVisited()) {
+      // Should not remove nested fields for AllFieldsExcludeMeta
+      // and when no explicit project has already curated the schema
       tryToRemoveNestedFields(context);
     }
     tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
@@ -1241,6 +1253,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitForeach(Foreach node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    return foreachPlanner.plan(node, context);
+  }
+
+  @Override
   public RelNode visitConvert(Convert node, CalcitePlanContext context) {
     visitChildren(node, context);
 
@@ -1371,7 +1389,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private void projectPlusOverriding(
+  void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
     Set<String> originalFieldNameSet =
         new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
@@ -1790,11 +1808,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.getAggregateOutputIndex().put(aggFunc, aggStartIdx + i);
       }
     }
+
+    // Register group-by expression output indices so post-aggregate references resolve to them;
+    // clear() safe as above.
+    context.getGroupKeyOutputIndex().clear();
+    int groupStartIdx = metricsFirst ? aggRexList.size() : 0;
+    for (int i = 0; i < groupExprList.size(); i++) {
+      Function groupFunc = extractFunction(groupExprList.get(i));
+      if (groupFunc != null) {
+        context.getGroupKeyOutputIndex().put(groupFunc, groupStartIdx + i);
+      }
+    }
   }
 
   private static AggregateFunction extractAggregateFunction(UnresolvedExpression expr) {
     if (expr instanceof AggregateFunction af) return af;
     if (expr instanceof Alias alias) return extractAggregateFunction(alias.getDelegated());
+    return null;
+  }
+
+  private static Function extractFunction(UnresolvedExpression expr) {
+    if (expr instanceof Function f) return f;
+    if (expr instanceof Alias alias) return extractFunction(alias.getDelegated());
     return null;
   }
 
@@ -3807,6 +3842,148 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitTimewrap(Timewrap node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Signal the execution engine to strip all-null columns and rename with absolute offsets
+    CalcitePlanContext.stripNullColumns.set(true);
+    CalcitePlanContext.timewrapUnitName.set(
+        TimewrapUtils.unitBaseName(node.getUnit(), node.getValue()) + "|_before");
+    CalcitePlanContext.timewrapSeries.set(node.getSeries());
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    List<String> fieldNames =
+        b.peek().getRowType().getFieldNames().stream().filter(f -> !isMetadataField(f)).toList();
+    String tsFieldName = fieldNames.get(0);
+    List<String> valueFieldNames = fieldNames.subList(1, fieldNames.size());
+
+    boolean variableLength = TimewrapUtils.isVariableLengthUnit(node.getUnit());
+    RelDataType bigintType = rx.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+
+    RexNode periodNum;
+    RexNode displayTimestamp;
+    RexNode baseOffset;
+
+    if (variableLength) {
+      // --- Variable-length units (month, quarter, year): EXTRACT-based calendar arithmetic ---
+      RexNode tsField = b.field(tsFieldName);
+      RexNode tsUnitNum =
+          TimewrapUtils.calendarUnitNumber(rx, tsField, node.getUnit(), node.getValue());
+
+      b.projectPlus(b.aggregateCall(SqlStdOperatorTable.MAX, tsField).over().as("__max_ts__"));
+      RexNode maxTs = b.field("__max_ts__");
+      RexNode maxUnitNum =
+          TimewrapUtils.calendarUnitNumber(rx, maxTs, node.getUnit(), node.getValue());
+
+      periodNum =
+          rx.makeCall(
+              SqlStdOperatorTable.PLUS,
+              rx.makeCall(SqlStdOperatorTable.MINUS, maxUnitNum, tsUnitNum),
+              rx.makeExactLiteral(BigDecimal.ONE, bigintType));
+
+      RexNode tsEpoch =
+          rx.makeCast(bigintType, rx.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, tsField), true);
+      RexNode unitStartEpoch = TimewrapUtils.calendarUnitStartEpoch(rx, tsField, node.getUnit());
+      RexNode offsetSec = rx.makeCall(SqlStdOperatorTable.MINUS, tsEpoch, unitStartEpoch);
+      RexNode maxUnitStartEpoch = TimewrapUtils.calendarUnitStartEpoch(rx, maxTs, node.getUnit());
+      RexNode displayEpoch = rx.makeCall(SqlStdOperatorTable.PLUS, maxUnitStartEpoch, offsetSec);
+      displayTimestamp = rx.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, displayEpoch);
+
+      long nowEpochSec = context.functionProperties.getQueryStartClock().millis() / 1000;
+      Long referenceEpoch = null;
+      if ("end".equals(node.getAlign())) {
+        referenceEpoch = TimewrapUtils.extractTimestampUpperBound(node);
+      }
+      if (referenceEpoch == null) {
+        referenceEpoch = nowEpochSec;
+      }
+      long refUnitNum =
+          TimewrapUtils.calendarUnitNumberFromEpoch(
+              referenceEpoch, node.getUnit(), node.getValue());
+      RexNode refUnitNumLit = rx.makeBigintLiteral(BigDecimal.valueOf(refUnitNum));
+      baseOffset = rx.makeCall(SqlStdOperatorTable.MINUS, refUnitNumLit, maxUnitNum);
+
+    } else {
+      // --- Fixed-length units (sec, min, hr, day, week): epoch-based arithmetic ---
+      long spanSec = TimewrapUtils.spanToSeconds(node.getUnit(), node.getValue());
+
+      RexNode tsEpochExpr =
+          rx.makeCast(
+              bigintType,
+              rx.makeCall(PPLBuiltinOperators.UNIX_TIMESTAMP, b.field(tsFieldName)),
+              true);
+      b.projectPlus(
+          b.alias(tsEpochExpr, "__ts_epoch__"),
+          b.aggregateCall(SqlStdOperatorTable.MAX, tsEpochExpr).over().as("__max_epoch__"));
+
+      RexNode tsEpoch = b.field("__ts_epoch__");
+      RexNode maxEpoch = b.field("__max_epoch__");
+      RexNode spanLit = rx.makeBigintLiteral(BigDecimal.valueOf(spanSec));
+
+      RexNode diff = rx.makeCall(SqlStdOperatorTable.MINUS, maxEpoch, tsEpoch);
+      periodNum =
+          rx.makeCall(
+              SqlStdOperatorTable.PLUS,
+              rx.makeCall(SqlStdOperatorTable.DIVIDE, diff, spanLit),
+              rx.makeExactLiteral(BigDecimal.ONE, bigintType));
+
+      RexNode offsetSec = rx.makeCall(SqlStdOperatorTable.MOD, tsEpoch, spanLit);
+      RexNode latestPeriodStart =
+          rx.makeCall(
+              SqlStdOperatorTable.MINUS,
+              maxEpoch,
+              rx.makeCall(SqlStdOperatorTable.MOD, maxEpoch, spanLit));
+      RexNode displayEpoch = rx.makeCall(SqlStdOperatorTable.PLUS, latestPeriodStart, offsetSec);
+      displayTimestamp = rx.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, displayEpoch);
+
+      long nowEpochSec = context.functionProperties.getQueryStartClock().millis() / 1000;
+      Long referenceEpoch = null;
+      if ("end".equals(node.getAlign())) {
+        referenceEpoch = TimewrapUtils.extractTimestampUpperBound(node);
+      }
+      if (referenceEpoch == null) {
+        referenceEpoch = nowEpochSec;
+      }
+      RexNode refLit = rx.makeBigintLiteral(BigDecimal.valueOf(referenceEpoch));
+      // Floor-divide (ref - maxEpoch) by span: integer DIVIDE truncates toward zero, which is wrong
+      // when the reference is below maxEpoch (e.g. align=now over future-dated data) — it would
+      // shift period labels by one across the latest/before/after boundary. Cast to DOUBLE and
+      // FLOOR
+      // to get true floor division, then back to BIGINT.
+      RelDataType doubleType = rx.getTypeFactory().createSqlType(SqlTypeName.DOUBLE);
+      RexNode refDiff = rx.makeCall(SqlStdOperatorTable.MINUS, refLit, maxEpoch);
+      RexNode refDiffDouble = rx.makeCast(doubleType, refDiff, true);
+      baseOffset =
+          rx.makeCast(
+              bigintType,
+              rx.makeCall(
+                  SqlStdOperatorTable.FLOOR,
+                  rx.makeCall(SqlStdOperatorTable.DIVIDE, refDiffDouble, spanLit)),
+              true);
+    }
+
+    // Step 3: Project [display_timestamp, value_columns..., base_offset, period]
+    // base_offset is included in the group key so it survives the PIVOT
+    List<RexNode> projections = new ArrayList<>();
+    projections.add(b.alias(displayTimestamp, tsFieldName));
+    for (String vf : valueFieldNames) {
+      projections.add(b.field(vf));
+    }
+    projections.add(b.alias(baseOffset, "__base_offset__"));
+    projections.add(b.alias(periodNum, "__period__"));
+    b.project(projections);
+
+    // Step 4: Sort by offset, then period (execution engine will pivot)
+    // No Calcite PIVOT -- the execution engine pivots dynamically after reading all rows.
+    // Output schema: [display_timestamp, value_columns..., __base_offset__, __period__]
+    b.sort(b.field(tsFieldName), b.field("__period__"));
+
+    return b.peek();
+  }
+
   /**
    * Aggregate by column split then rank by grand total (summed value of each category). The output
    * is <code>[col-split, grand-total, row-number]</code>
@@ -4413,17 +4590,150 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
     List<List<Literal>> rows = values.getValues();
-    if (rows == null || rows.isEmpty()) {
+    RelBuilder relBuilder = context.relBuilder;
+    boolean hasExplicitSchema = values.getColumnNames() != null || values.getColumnTypes() != null;
+    if (!hasExplicitSchema && (rows == null || rows.isEmpty())) {
       // PPL empty subsearch (e.g., `... | append [ ]`): zero rows, no columns.
-      context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
-      return context.relBuilder.peek();
+      relBuilder.values(relBuilder.getTypeFactory().builder().build());
+      return relBuilder.peek();
     }
-    if (rows.size() == 1 && rows.get(0).isEmpty()) {
+    if (rows != null && rows.size() == 1 && rows.get(0).isEmpty()) {
       // SQL FROM-less SELECT (dual table) encoded as Values([[]]): one-row relation for Project.
-      context.relBuilder.push(LogicalValues.createOneRow(context.relBuilder.getCluster()));
-      return context.relBuilder.peek();
+      relBuilder.push(LogicalValues.createOneRow(relBuilder.getCluster()));
+      return relBuilder.peek();
     }
-    throw new CalciteUnsupportedException("Inline VALUES with literal rows is unsupported");
+    // Inline literal rows, e.g. `makeresults format=csv|json data=...`.
+    return buildLiteralValues(
+        relBuilder,
+        values.getColumnNames(),
+        values.getColumnTypes(),
+        rows,
+        values.isWithImplicitTimestamp());
+  }
+
+  /**
+   * Build a typed {@link LogicalValues} (+ a cast {@code Project}) from inline literal rows. Column
+   * names/types are taken from the explicit lists when provided (authoritative, and required to
+   * type a zero-row relation); otherwise names are positional and types are inferred from the
+   * literals.
+   */
+  private RelNode buildLiteralValues(
+      RelBuilder relBuilder,
+      List<String> explicitNames,
+      List<ExprCoreType> explicitTypes,
+      List<List<Literal>> rows,
+      boolean withImplicitTimestamp) {
+    int nc;
+    if (explicitTypes != null) {
+      nc = explicitTypes.size();
+    } else if (explicitNames != null) {
+      nc = explicitNames.size();
+    } else if (!rows.isEmpty() && !rows.get(0).isEmpty()) {
+      nc = rows.get(0).size();
+    } else {
+      nc = 0;
+    }
+
+    List<String> names = new java.util.ArrayList<>();
+    for (int i = 0; i < nc; i++) {
+      names.add(explicitNames != null ? explicitNames.get(i) : "column_" + i);
+    }
+
+    List<ExprCoreType> types = new java.util.ArrayList<>();
+    for (int c = 0; c < nc; c++) {
+      if (explicitTypes != null) {
+        types.add(explicitTypes.get(c));
+      } else {
+        // infer from the first non-null literal in this column, defaulting to STRING.
+        ExprCoreType t = ExprCoreType.STRING;
+        for (List<Literal> row : rows) {
+          DataType dt = row.get(c).getType();
+          if (dt != DataType.NULL) {
+            t = dt.getCoreType();
+            break;
+          }
+        }
+        types.add(t);
+      }
+    }
+
+    boolean prependTimestamp =
+        withImplicitTimestamp && !names.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    RelDataType tsType =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, false);
+
+    var typeBuilder = relBuilder.getTypeFactory().builder();
+    if (prependTimestamp) {
+      typeBuilder.add(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, tsType);
+    }
+    for (int i = 0; i < nc; i++) {
+      typeBuilder.add(
+          names.get(i), OpenSearchTypeFactory.convertExprTypeToRelDataType(types.get(i), true));
+    }
+    RelDataType rowType = typeBuilder.build();
+
+    if (rows.isEmpty()) {
+      // header-only CSV / empty JSON array: a zero-row relation with the resolved schema.
+      relBuilder.values(ImmutableList.<ImmutableList<RexLiteral>>of(), rowType);
+      return relBuilder.peek();
+    }
+
+    Object[] flat = new Object[rows.size() * nc];
+    int k = 0;
+    for (List<Literal> row : rows) {
+      for (Literal cell : row) {
+        flat[k++] = cell.getValue();
+      }
+    }
+    relBuilder.values(names.toArray(new String[0]), flat);
+    List<RexNode> projects = new java.util.ArrayList<>();
+    if (prependTimestamp) {
+      projects.add(
+          relBuilder.alias(
+              relBuilder.call(PPLBuiltinOperators.NOW),
+              OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP));
+    }
+    for (int i = 0; i < nc; i++) {
+      projects.add(
+          relBuilder.alias(
+              relBuilder.cast(
+                  relBuilder.field(i),
+                  rowType.getField(names.get(i), true, false).getType().getSqlTypeName()),
+              names.get(i)));
+    }
+    relBuilder.project(projects);
+    return relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMakeResults(MakeResults node, CalcitePlanContext context) {
+    // Count path only: the `format=csv|json data=...` form is parsed into a shared Values node
+    // (see MakeResultsDataParser) and handled by visitValues.
+    RelBuilder relBuilder = context.relBuilder;
+    int count = node.getCount();
+    RelDataType tsType =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.TIMESTAMP, false);
+    if (count == 0) {
+      RelDataType rowType =
+          relBuilder
+              .getTypeFactory()
+              .builder()
+              .add(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, tsType)
+              .build();
+      relBuilder.values(ImmutableList.<ImmutableList<RexLiteral>>of(), rowType);
+      return relBuilder.peek();
+    }
+    // The dummy column only carries row multiplicity; project it to @timestamp=NOW(), OpenSearch's
+    // implicit time field recognized by the time-aware commands.
+    Object[] dummy = new Object[count];
+    for (int i = 0; i < count; i++) {
+      dummy[i] = i;
+    }
+    relBuilder.values(new String[] {"__makeresults_dummy__"}, dummy);
+    RexNode now = relBuilder.call(PPLBuiltinOperators.NOW);
+    relBuilder.project(
+        List.of(relBuilder.alias(now, OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+    return relBuilder.peek();
   }
 
   @Override

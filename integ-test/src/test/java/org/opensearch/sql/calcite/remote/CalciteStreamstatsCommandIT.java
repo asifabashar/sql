@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.CHAINED_STREAMSTATS_BY;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.STREAMSTATS_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -15,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Override
@@ -507,11 +510,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobal() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -560,6 +560,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -615,6 +616,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -670,11 +672,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsReset() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -723,6 +722,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -778,6 +778,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -850,6 +851,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHAINED_STREAMSTATS_BY)
   public void testMultipleStreamstats() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -868,6 +870,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHAINED_STREAMSTATS_BY)
   public void testMultipleStreamstatsWithWindow() throws IOException {
     // Test case from GitHub issue #4800: chained streamstats with window=2
     JSONObject actual =
@@ -904,6 +907,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   // causing Calcite's RelDecorrelator to fail on duplicate correlate references.
 
   @Test
+  @RequiresCapability(CHAINED_STREAMSTATS_BY)
   public void testMultipleStreamstatsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -942,11 +946,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testMultipleStreamstatsWithNull2() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 5;
     Request insertRequest =
         new Request(
@@ -1016,6 +1017,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsAndSort() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -1082,6 +1084,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHAINED_STREAMSTATS_BY)
   public void testMultipleStreamstatsWithEval() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +21,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Override
@@ -869,6 +871,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -907,6 +910,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -948,6 +952,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -971,6 +976,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();

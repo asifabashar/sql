@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.junit.Assume.assumeFalse;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SearchCommandIT extends PPLIntegTestCase {
   private static final DateTimeFormatter PPL_TIMESTAMP_FORMATTER =
@@ -1053,11 +1054,8 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchTimeModifierWithSnappedWeek() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     // Test whether alignment to weekday works
 
     final int docId = 101;
@@ -1145,11 +1143,8 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithRelativeTimeModifiers() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentTime = LocalDateTime.now(ZoneOffset.UTC);
@@ -1197,11 +1192,8 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithTimeUnitSnapping() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentHour = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
@@ -1249,11 +1241,8 @@ public class SearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testSearchWithQuarterlyModifiers() throws IOException {
-    assumeFalse(
-        "Test mutates docs via PUT+DELETE, which DataFormatAwareEngine"
-            + " (analytics-engine storage path) does not support.",
-        isAnalyticsParquetIndicesEnabled());
     final int docId = 101;
 
     LocalDateTime currentQuarter =

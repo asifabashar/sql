@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -81,6 +82,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -563,6 +565,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitMakeResults(MakeResults node, AnalysisContext context) {
+    throw getOnlyForCalciteException("makeresults");
+  }
+
+  @Override
   public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
     throw getOnlyForCalciteException("mvexpand");
   }
@@ -570,6 +577,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
     throw getOnlyForCalciteException("graphlookup");
+  }
+
+  @Override
+  public LogicalPlan visitForeach(Foreach node, AnalysisContext context) {
+    throw getOnlyForCalciteException("foreach");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
