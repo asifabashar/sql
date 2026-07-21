@@ -3965,7 +3965,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       for (String pivotVal : pivotValues) {
         // Reference pivot output column by its generated name: {value}_{agg}
         String pivotColName = pivotVal + "_" + aggName;
-        reorderProjections.add(b.field(pivotColName));
+        try {
+          reorderProjections.add(b.field(pivotColName));
+        } catch (IllegalArgumentException e) {
+          throw new IllegalStateException(
+              "xyseries: expected pivot output column '" + pivotColName + "' not found", e);
+        }
         reorderNames.add(generateColumnName(aggName, pivotVal, separator, format));
       }
     }
